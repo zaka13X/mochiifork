@@ -1085,10 +1085,10 @@
 
         window.addEventListener("DOMContentLoaded", () => {
             if (savedVer === null || !savedVer) {
-                showToast("success", "Welcome to Cherri!", "fas fa-hand-wave")
+                showToast("success", "Welcome to mochii!", "fas fa-hand-wave")
                 localStorage.setItem("cherri_siteVersion", siteVersion)
             } else if (savedVer !== siteVersion) {
-                showToast("success", "Cherri was updated! Check settings for more info.", "fas fa-check-circle")
+                showToast("success", "mochii was updated! Check settings for more info.", "fas fa-check-circle")
                 localStorage.setItem("cherri_siteVersion", siteVersion)
             }
         })
