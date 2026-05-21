@@ -175,7 +175,7 @@ const allThemeOptions = [
   "violet",
 ];
 
-const allStoreOptions = ["Classplay", "GN-Math"];
+const allStoreOptions = ["GN-Math"];
 
 function createSelector(
   selectorType,
