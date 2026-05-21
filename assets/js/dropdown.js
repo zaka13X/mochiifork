@@ -5,7 +5,7 @@ const appSettings = {
   decoy: localStorage.getItem("decoy") || "None",
   wisp: localStorage.getItem("cherri_wispUrlSelected") || "rhw",
   theme: localStorage.getItem("cherri_theme") || "default",
-  store: localStorage.getItem("cherri_gameStore") || "Classplay",
+  store: localStorage.getItem("cherri_gameStore") || "GN-Math",
 };
 
 const searchEngineSelector = document.querySelector(".search-engine-selector");
