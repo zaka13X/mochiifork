@@ -248,7 +248,7 @@ function applyDecoy(s) {
         s +
         " was selected"
     );
-    document.title = "cherri";
+    document.title = "mochii || pr0xy / ubg";
     favicon.href = "/assets/img/fav.png";
     return;
   } else {
