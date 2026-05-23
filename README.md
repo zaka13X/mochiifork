@@ -19,6 +19,7 @@
 * [x] Chatroom
 * [x] Game overlay
 * [ ] More Games
+* [ ] Music
 
 <hr>
 
@@ -85,32 +86,6 @@ firebase init hosting
 ```
 
 follow the CLI steps, then deploy.
-
----
-
-## if You fork this project
-
-#### you MUST remember the original repository was by <b><em>x8rr</em></b>
-
-please consider starring the repository.
-
-You must **not**:
-
-* Modify the AGPL license
-* Claim this code as your own
-* Fail to provide proper credit
-* Use this code in your website without attribution
-* Detach from the fork network without giving credit
-* Violate the license in any way
-* Steal the code or redistribute it without acknowledgment
-
-You *may*:
-
-* Deploy it without any modifications
-* Deploy it with modifications (as long as credit and a changelog are included)
-* Perform other allowed actions as defined by the license
-
-To remain compliant, it is recommended that you include a notice like this:
 
 ---
 
