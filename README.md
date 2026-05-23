@@ -1,7 +1,7 @@
 <h1 align="center">mochii</h1>
 
 <p align="center">
-  <img alt="image" src="[https://github.com/user-attachments/assets/d0532d69-892b-4b08-ae29-f2191295fbf7](https://github.com/atmo1lost/mochii/blob/master/Screenshot%202026-05-23%20at%2014.08.22.png?raw=true)" />
+  <img alt="image" src="https://github.com/atmo1lost/mochii/blob/master/Screenshot%202026-05-23%20at%2014.08.22.png?raw=true"/>
 </p>
 
 <p align="center">
@@ -19,6 +19,7 @@
 * [x] Chatroom
 * [x] Game overlay
 * [ ] More Games
+* [ ] Music
 
 <hr>
 
@@ -85,32 +86,6 @@ firebase init hosting
 ```
 
 follow the CLI steps, then deploy.
-
----
-
-## if You fork this project
-
-#### you MUST remember the original repository was by <b><em>x8rr</em></b>
-
-please consider starring the repository.
-
-You must **not**:
-
-* Modify the AGPL license
-* Claim this code as your own
-* Fail to provide proper credit
-* Use this code in your website without attribution
-* Detach from the fork network without giving credit
-* Violate the license in any way
-* Steal the code or redistribute it without acknowledgment
-
-You *may*:
-
-* Deploy it without any modifications
-* Deploy it with modifications (as long as credit and a changelog are included)
-* Perform other allowed actions as defined by the license
-
-To remain compliant, it is recommended that you include a notice like this:
 
 ---
 
