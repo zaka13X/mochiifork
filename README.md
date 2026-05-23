@@ -1,7 +1,7 @@
 <h1 align="center">mochii</h1>
 
 <p align="center">
-  <img alt="image" src="[https://github.com/user-attachments/assets/d0532d69-892b-4b08-ae29-f2191295fbf7](https://github.com/atmo1lost/mochii/blob/master/Screenshot%202026-05-23%20at%2014.08.22.png?raw=true)" />
+  <img alt="image" src="https://github.com/atmo1lost/mochii/blob/master/Screenshot%202026-05-23%20at%2014.08.22.png?raw=true"/>
 </p>
 
 <p align="center">
