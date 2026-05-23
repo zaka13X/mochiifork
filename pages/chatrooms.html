@@ -2036,13 +2036,18 @@
 
     <input type="file" id="imageInput" accept="image/*" style="display: none" />
     <div id="modalContainer"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/emoji-mart/5.5.2/emoji-mart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/emoji-mart/5.5.2/emoji-mart.css" />
     <script>
+        const SUPABASE_URL = "https://buruifwqtffpgmvhhmwt.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1cnVpZndxdGZmcGdtdmhobXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjYxMzYsImV4cCI6MjA5NTEwMjEzNn0.ixYwPwoc2lhm6J3ASAdlW-goNtfa2b4I1Q-PfkJca2Y";
+        const MESSAGES_TABLE = "arrowchat_messages";
+
         class arrowchat {
             constructor() {
-                this.socket = io("https://qs03x443-3000.usw3.devtunnels.ms/");
+                this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                this.roomChannel = null;
                 this.ip = "";
                 this.currentRoom = "general";
                 this.userRooms = this.loadUserRooms();
@@ -2051,6 +2056,9 @@
                 this.isLoading = false;
                 this.isAuthenticated = false;
                 this.typingTimeout = null;
+                this.typingUsers = {};
+                this.typingTimers = {};
+                this.listenersReady = false;
                 this.elements = {
                     appContainer: document.querySelector(".app-container"),
                     messagesContainer: document.getElementById("messagesContainer"),
@@ -2074,51 +2082,45 @@
 
             async init() {
                 this.elements.appContainer.style.opacity = "0";
-                await this.getIP();
 
                 if (!this.isAuthenticated) {
                     this.showLoginModal();
                 }
             }
-            editMessage(messageId, data) {
+            async editMessage(messageId, data) {
                 const newText = prompt("Edit message:", data.text);
                 if (newText && newText.trim() && newText !== data.text) {
-                    this.socket.emit(
-                        "editMessage",
-                        { messageId, newText: newText.trim() },
-                        (response) => {
-                            if (!response.success) {
-                                alert(response.message || "Failed to edit message");
-                            }
-                        }
-                    );
-                }
-            }
-            deleteMessage(messageId) {
-                if (confirm("Delete this message?")) {
-                    this.socket.emit("deleteMessage", { messageId }, (response) => {
-                        if (!response.success) {
-                            alert(response.message || "Failed to delete message");
-                        }
-                    });
-                }
-            }
-            sendMessageWithImage(imageData) {
-                const msg = this.elements.chatInput.value.trim();
-                const color = this.userColor;
-                const username = this.username;
+                    const { error } = await this.supabase
+                        .from(MESSAGES_TABLE)
+                        .update({ text: newText.trim(), edited: true })
+                        .eq("id", messageId)
+                        .eq("username", this.username);
 
-                this.socket.emit("sendMessage", {
-                    text: msg,
-                    imageData: imageData,
-                    color: color,
-                    username: username,
-                    timestamp: Date.now(),
-                });
+                    if (error) {
+                        alert(error.message || "Failed to edit message");
+                    }
+                }
+            }
+            async deleteMessage(messageId) {
+                if (confirm("Delete this message?")) {
+                    const { error } = await this.supabase
+                        .from(MESSAGES_TABLE)
+                        .delete()
+                        .eq("id", messageId)
+                        .eq("username", this.username);
+
+                    if (error) {
+                        alert(error.message || "Failed to delete message");
+                    }
+                }
+            }
+            async sendMessageWithImage(imageData) {
+                const msg = this.elements.chatInput.value.trim();
+                await this.insertMessage({ text: msg, image_data: imageData });
 
                 this.elements.chatInput.value = "";
                 this.elements.chatInput.style.height = "auto";
-                this.socket.emit("typing", { isTyping: false });
+                this.broadcastTyping(false);
             }
             renderReactions(reactions, messageId) {
                 const reactionsDiv = document.createElement("div");
@@ -2291,16 +2293,36 @@
 
                 return loadingDiv;
             }
-            toggleReaction(messageId, emoji) {
-                this.socket.emit(
-                    "toggleReaction",
-                    { messageId, emoji },
-                    (response) => {
-                        if (!response.success) {
-                            console.error("Failed to toggle reaction:", response.message);
-                        }
-                    }
-                );
+            async toggleReaction(messageId, emoji) {
+                const { data, error } = await this.supabase
+                    .from(MESSAGES_TABLE)
+                    .select("reactions")
+                    .eq("id", messageId)
+                    .single();
+
+                if (error) {
+                    console.error("Failed to load reactions:", error.message);
+                    return;
+                }
+
+                const reactions = data?.reactions || {};
+                const users = Array.isArray(reactions[emoji]) ? reactions[emoji] : [];
+
+                if (users.includes(this.username)) {
+                    reactions[emoji] = users.filter((user) => user !== this.username);
+                    if (reactions[emoji].length === 0) delete reactions[emoji];
+                } else {
+                    reactions[emoji] = [...users, this.username];
+                }
+
+                const { error: updateError } = await this.supabase
+                    .from(MESSAGES_TABLE)
+                    .update({ reactions })
+                    .eq("id", messageId);
+
+                if (updateError) {
+                    console.error("Failed to toggle reaction:", updateError.message);
+                }
             }
             showReactionPicker(messageId, contentDiv) {
                 const emojis = ['👍', '😂', '🎉', '👀', '❤️', '🔥', '💀'];
@@ -2404,17 +2426,185 @@
                 };
                 reader.readAsDataURL(file);
             }
-            async getIP() {
-                return new Promise((resolve) => {
-                    if (this.ip) {
-                        resolve(this.ip);
-                        return;
-                    }
-                    this.socket.once("ipAddress", ({ ip }) => {
-                        this.ip = ip;
-                        resolve(ip);
-                    });
+            normalizeMessage(row) {
+                return {
+                    id: row.id,
+                    room: row.room,
+                    username: row.username,
+                    color: row.color || "#ef4444",
+                    text: row.text || "",
+                    image_data: row.image_data,
+                    reactions: row.reactions || {},
+                    edited: Boolean(row.edited),
+                    timestamp: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+                };
+            }
+
+            async insertMessage({ text = "", image_data = null }) {
+                if (!text && !image_data) return;
+
+                const { error } = await this.supabase.from(MESSAGES_TABLE).insert({
+                    room: this.currentRoom,
+                    username: this.username,
+                    color: this.userColor,
+                    text,
+                    image_data,
                 });
+
+                if (error) {
+                    alert(error.message || "Failed to send message");
+                }
+            }
+
+            async subscribeToRoom(roomName) {
+                if (this.roomChannel) {
+                    await this.supabase.removeChannel(this.roomChannel);
+                    this.roomChannel = null;
+                }
+
+                this.typingUsers = {};
+                Object.values(this.typingTimers).forEach(clearTimeout);
+                this.typingTimers = {};
+                this.renderTypingStatus();
+
+                this.roomChannel = this.supabase.channel(`arrowchat:${roomName}`, {
+                    config: {
+                        broadcast: { self: false },
+                        presence: { key: `${this.username}-${Math.random().toString(36).slice(2)}` },
+                    },
+                });
+
+                this.roomChannel
+                    .on(
+                        "postgres_changes",
+                        {
+                            event: "INSERT",
+                            schema: "public",
+                            table: MESSAGES_TABLE,
+                            filter: `room=eq.${roomName}`,
+                        },
+                        async ({ new: row }) => {
+                            if (document.querySelector(`[data-message-id="${row.id}"]`)) return;
+                            const emptyState =
+                                this.elements.messagesContainer.querySelector(".empty-state");
+                            if (emptyState) emptyState.remove();
+                            const messageDiv = await this.renderMessage(this.normalizeMessage(row));
+                            this.elements.messagesContainer.appendChild(messageDiv);
+                            this.elements.messagesContainer.scrollTop =
+                                this.elements.messagesContainer.scrollHeight;
+                        }
+                    )
+                    .on(
+                        "postgres_changes",
+                        {
+                            event: "UPDATE",
+                            schema: "public",
+                            table: MESSAGES_TABLE,
+                            filter: `room=eq.${roomName}`,
+                        },
+                        async ({ new: row }) => {
+                            const messageEl = document.querySelector(
+                                `[data-message-id="${row.id}"]`
+                            );
+                            if (messageEl) {
+                                const newMessageDiv = await this.renderMessage(
+                                    this.normalizeMessage(row)
+                                );
+                                messageEl.replaceWith(newMessageDiv);
+                            }
+                        }
+                    )
+                    .on(
+                        "postgres_changes",
+                        {
+                            event: "DELETE",
+                            schema: "public",
+                            table: MESSAGES_TABLE,
+                        },
+                        ({ old: row }) => {
+                            if (!row?.id) return;
+                            const messageEl = document.querySelector(
+                                `[data-message-id="${row.id}"]`
+                            );
+                            if (messageEl) messageEl.remove();
+                        }
+                    )
+                    .on("presence", { event: "sync" }, () => {
+                        const state = this.roomChannel.presenceState();
+                        const online = Object.values(state).reduce(
+                            (count, presences) => count + presences.length,
+                            0
+                        );
+                        document.getElementById("onlineCount").textContent = `${online} online`;
+                    })
+                    .on("broadcast", { event: "typing" }, ({ payload }) =>
+                        this.handleTyping(payload)
+                    )
+                    .subscribe(async (status) => {
+                        if (status === "SUBSCRIBED") {
+                            await this.roomChannel.track({
+                                username: this.username,
+                                online_at: new Date().toISOString(),
+                            });
+                        }
+
+                        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                            console.error("Supabase realtime error:", status);
+                        }
+                    });
+            }
+
+            broadcastTyping(isTyping) {
+                if (!this.roomChannel) return;
+
+                this.roomChannel.send({
+                    type: "broadcast",
+                    event: "typing",
+                    payload: {
+                        room: this.currentRoom,
+                        username: this.username,
+                        isTyping,
+                    },
+                });
+            }
+
+            handleTyping(payload) {
+                if (
+                    !payload ||
+                    payload.room !== this.currentRoom ||
+                    payload.username === this.username
+                ) {
+                    return;
+                }
+
+                clearTimeout(this.typingTimers[payload.username]);
+
+                if (payload.isTyping) {
+                    this.typingUsers[payload.username] = true;
+                    this.typingTimers[payload.username] = setTimeout(() => {
+                        delete this.typingUsers[payload.username];
+                        this.renderTypingStatus();
+                    }, 3500);
+                } else {
+                    delete this.typingUsers[payload.username];
+                }
+
+                this.renderTypingStatus();
+            }
+
+            renderTypingStatus() {
+                const users = Object.keys(this.typingUsers);
+                let typingText = "";
+
+                if (users.length === 1) {
+                    typingText = `${users[0]} is typing...`;
+                } else if (users.length === 2) {
+                    typingText = `${users[0]} and ${users[1]} are typing...`;
+                } else if (users.length > 2) {
+                    typingText = `${users[0]}, ${users[1]}, and ${users.length - 2} others are typing...`;
+                }
+
+                this.elements.typingStatus.textContent = typingText;
             }
 
             startApp() {
@@ -2422,7 +2612,10 @@
                 this.elements.appContainer.style.opacity = "1";
                 this.elements.modalContainer.innerHTML = "";
                 this.updateUserDisplay();
-                this.setupEventListeners();
+                if (!this.listenersReady) {
+                    this.setupEventListeners();
+                    this.listenersReady = true;
+                }
                 this.renderRooms();
                 this.loadRoom(this.currentRoom);
             }
@@ -2621,7 +2814,7 @@
                 this.elements.messagesContainer.innerHTML = emptyStateHTML;
             }
 
-            loadRoom(roomName) {
+            async loadRoom(roomName) {
                 if (this.isLoading) return;
 
                 this.isLoading = true;
@@ -2637,7 +2830,40 @@
                 if (activeRoom) activeRoom.classList.add("active");
 
                 this.showSkeleton();
-                this.socket.emit("joinRoom", { room: roomName });
+
+                const { data, error } = await this.supabase
+                    .from(MESSAGES_TABLE)
+                    .select("*")
+                    .eq("room", roomName)
+                    .order("created_at", { ascending: true })
+                    .limit(100);
+
+                this.isLoading = false;
+                this.hideSkeleton();
+                this.elements.messagesContainer.innerHTML = "";
+
+                if (error) {
+                    console.error("Failed to load messages:", error);
+                    this.elements.messagesContainer.innerHTML = `
+                        <div class="empty-state">
+                            <h3>Chat setup needed</h3>
+                            <p>${error.message}</p>
+                        </div>`;
+                    return;
+                }
+
+                if (data && data.length > 0) {
+                    for (const row of data) {
+                        const messageDiv = await this.renderMessage(this.normalizeMessage(row));
+                        this.elements.messagesContainer.appendChild(messageDiv);
+                    }
+                } else {
+                    this.showEmptyState();
+                }
+
+                this.elements.messagesContainer.scrollTop =
+                    this.elements.messagesContainer.scrollHeight;
+                await this.subscribeToRoom(roomName);
             }
 
             renderRooms() {
@@ -2751,31 +2977,19 @@
                     return;
                 }
 
-                errorDiv.textContent = '';
+                if (!/^[a-zA-Z0-9_.-]{2,24}$/.test(username)) {
+                    errorDiv.textContent =
+                        'Username must be 2-24 characters and use only letters, numbers, dots, dashes, or underscores.';
+                    return;
+                }
 
-                this.socket.emit(action, { username, password }, (response) => {
-                    if (response.success) {
-                        if (action === 'login') {
-                            this.username = response.user.username;
-                            localStorage.setItem(
-                                'info',
-                                JSON.stringify({ username: this.username, password: btoa(password) })
-                            );
-                            this.startApp();
-                        } else {
-                            this.showLoginModal();
-                            document.getElementById('authError').textContent =
-                                'Registration successful! Please log in, your username is ' + response.username + '.';
-                        }
-                    } else {
-                        errorDiv.textContent = response.message;
-                        if (info) {
-                            localStorage.clear();
-                            alert('this window will reload, please re register, something happened to the database :(');
-                            window.location.reload();
-                        }
-                    }
-                });
+                errorDiv.textContent = '';
+                this.username = username;
+                localStorage.setItem(
+                    'info',
+                    JSON.stringify({ username: this.username, password: btoa(password) })
+                );
+                this.startApp();
             }
 
             showSettingsModal() {
@@ -2856,6 +3070,10 @@
                     });
                 document.getElementById("logout").addEventListener("click", () => {
                     localStorage.removeItem("info");
+                    if (this.roomChannel) {
+                        this.supabase.removeChannel(this.roomChannel);
+                        this.roomChannel = null;
+                    }
                     this.isAuthenticated = false;
                     this.elements.appContainer.style.opacity = "0";
                     this.showLoginModal();
@@ -2904,18 +3122,13 @@
                     });
             }
 
-            sendMessage() {
+            async sendMessage() {
                 const msg = this.elements.chatInput.value.trim();
                 if (msg) {
-                    this.socket.emit("sendMessage", {
-                        text: msg,
-                        color: this.userColor,
-                        username: this.username,
-                        timestamp: Date.now(),
-                    });
+                    await this.insertMessage({ text: msg });
                     this.elements.chatInput.value = "";
                     this.elements.chatInput.style.height = "auto";
-                    this.socket.emit("typing", { isTyping: false });
+                    this.broadcastTyping(false);
                 }
             }
 
@@ -2938,16 +3151,16 @@
 
                     if (this.typingTimeout) clearTimeout(this.typingTimeout);
 
-                    this.socket.emit("typing", { isTyping: true });
+                    this.broadcastTyping(true);
 
                     this.typingTimeout = setTimeout(() => {
-                        this.socket.emit("typing", { isTyping: false });
+                        this.broadcastTyping(false);
                     }, 3000);
                 });
 
                 this.elements.chatInput.addEventListener("blur", () => {
                     if (this.typingTimeout) clearTimeout(this.typingTimeout);
-                    this.socket.emit("typing", { isTyping: false });
+                    this.broadcastTyping(false);
                 });
 
                 this.elements.sendButton.addEventListener("click", () =>
@@ -3002,113 +3215,6 @@
                             break;
                         }
                     }
-                });
-                this.socket.on("online", ({ online }) => {
-                    document.getElementById(
-                        "onlineCount"
-                    ).textContent = `${online} online`;
-                });
-                this.socket.on("loaded", async ({ list }) => {
-                    this.isLoading = false;
-                    this.hideSkeleton();
-                    this.elements.messagesContainer.innerHTML = "";
-
-                    if (list && list.length > 0) {
-                        for (const data of list) {
-                            const messageDiv = await this.renderMessage(data);
-                            this.elements.messagesContainer.appendChild(messageDiv);
-                        }
-                    } else {
-                        this.showEmptyState();
-                    }
-
-                    const container = this.elements.messagesContainer;
-                    container.scrollTop = container.scrollHeight;
-                });
-
-                this.socket.on("newMessage", async (data) => {
-                    if (data.room === this.currentRoom) {
-                        const messageDiv = await this.renderMessage(data);
-                        this.elements.messagesContainer.appendChild(messageDiv);
-                        const container = this.elements.messagesContainer;
-                        container.scrollTop = container.scrollHeight;
-                    }
-                });
-
-                this.socket.on("messageUpdated", async (data) => {
-                    if (data.room === this.currentRoom) {
-                        const messageEl = document.querySelector(
-                            `[data-message-id="${data.id}"]`
-                        );
-                        if (messageEl) {
-                            const newMessageDiv = await this.renderMessage(data);
-                            messageEl.replaceWith(newMessageDiv);
-                        }
-                    }
-                });
-
-                this.socket.on("messageDeleted", ({ messageId }) => {
-                    const messageEl = document.querySelector(
-                        `[data-message-id="${messageId}"]`
-                    );
-                    if (messageEl) {
-                        messageEl.style.animation = "fadeOut 0.3s ease";
-                        setTimeout(() => messageEl.remove(), 300);
-                    }
-                });
-
-                this.socket.on("reactionUpdated", ({ messageId, reactions }) => {
-                    const messageEl = document.querySelector(
-                        `[data-message-id="${messageId}"]`
-                    );
-                    if (messageEl) {
-                        const reactionsDiv =
-                            messageEl.querySelector(".message-reactions");
-                        if (reactionsDiv) {
-                            const newReactionsDiv = this.renderReactions(
-                                reactions,
-                                messageId
-                            );
-                            reactionsDiv.replaceWith(newReactionsDiv);
-                        } else {
-                            const textDiv = messageEl.querySelector(".message-text");
-                            if (textDiv) {
-                                const newReactionsDiv = this.renderReactions(
-                                    reactions,
-                                    messageId
-                                );
-                                textDiv.appendChild(newReactionsDiv);
-                            }
-                        }
-                    }
-                });
-
-                this.socket.on("typing", ({ typers }) => {
-                    let typingText = "";
-                    if (typers) {
-                        const users = Object.keys(typers).filter(
-                            (user) => user !== this.username
-                        );
-                        if (users.length > 0) {
-                            if (users.length === 1) {
-                                typingText = `${users[0]} is typing...`;
-                            } else if (users.length === 2) {
-                                typingText = `${users[0]} and ${users[1]} are typing...`;
-                            } else {
-                                typingText = `${users[0]}, ${users[1]}, and ${users.length - 2
-                                    } others are typing...`;
-                            }
-                        }
-                    }
-                    this.elements.typingStatus.textContent = typingText;
-                });
-
-                this.socket.on("disconnect", () => {
-                    document.body.innerHTML = `
-                            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 16px;">
-                              <h1 style="font-size: 32px; font-weight: 600;">Disconnected</h1>
-                              <p style="color: var(--muted-foreground);">You have been disconnected. Please refresh the page.</p>
-                            </div>`;
                 });
             }
         }
