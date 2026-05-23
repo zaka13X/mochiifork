@@ -3,7 +3,7 @@ const appSettings = {
   backend: localStorage.getItem("cherri_backend") || "Scramjet",
   searchEngine: localStorage.getItem("cherri_searchEngine") || "DuckDuckGo",
   decoy: localStorage.getItem("decoy") || "None",
-  wisp: localStorage.getItem("cherri_wispUrlSelected") || "rhw",
+  wisp: localStorage.getItem("cherri_wispUrlSelected") || "mochiii",
   theme: localStorage.getItem("cherri_theme") || "default",
   store: localStorage.getItem("cherri_gameStore") || "GN-Math",
 };
@@ -23,6 +23,10 @@ const decoyOptions = decoySelector.querySelector(".decoy-options");
 const backendSelector = document.querySelector(".backend-selector");
 const backendSelected = backendSelector.querySelector(".backend-selected");
 const backendOptions = backendSelector.querySelector(".backend-options");
+
+const wispSelector = document.querySelector(".wisp-selector");
+const wispSelected = wispSelector.querySelector(".wisp-selected");
+const wispOptions = wispSelector.querySelector(".wisp-options");
 
 const themeSelector = document.querySelector(".theme-selector");
 const themeSelected = themeSelector.querySelector(".theme-selected");
@@ -149,11 +153,12 @@ const allDecoyOptions = [
 
 const wispPresets = {
   rhw: { url: "wss://wisp.rhw.one/" },
-  
+  mochiii: { url: "wss://mochiiibackend.share.zrok.io/wisp/" },
 };
 
 const allWispOptions = [
   "rhw",
+  "mochiii",
 ];
 
 const allThemeOptions = [
@@ -289,6 +294,17 @@ createSelector(
   "cherri_backend",
   "backendUpdated",
   "Successfully updated backend!"
+);
+
+createSelector(
+  "wisp",
+  wispSelected,
+  wispOptions,
+  allWispOptions,
+  appSettings.wisp,
+  "cherri_wispUrlSelected",
+  "wispUpdated",
+  "Successfully updated Wisp server! Refresh to apply changes."
 );
 
 createSelector(

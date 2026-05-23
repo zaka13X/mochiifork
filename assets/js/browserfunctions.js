@@ -2,7 +2,8 @@ let aTab = 0;
 let tabCounter = 1;
 let bTabs = [];
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
-const wispUrl = localStorage.getItem("cherri_wispUrl") || "wss://wisp.rhw.one/";
+// const wispUrl = localStorage.getItem("cherri_wispUrl") || "wss://wisp.rhw.one/";
+const wispUrl = localStorage.getItem("cherri_wispUrl") || "wss://mochiiibackend.share.zrok.io/wisp/";
 const bareUrl = "https://useclassplay.vercel.app/fq/";
 
 let searchE;
