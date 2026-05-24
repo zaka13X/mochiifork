@@ -34,8 +34,11 @@
         // why is there a comment here you may ask? well, i don't know. i just put it here. okay now go away this code is NOT interesting twin.
         const params = new URLSearchParams(window.location.search)
         if (!params.get("launch")) {
-            window.location.replace('/start.html');
+        window.location.replace('/start.html');
+        } else {
+        history.replaceState(null, '', '/');  // 
         }
+        // ty sir cy
     </script>
     <meta name="title" content="mochii">
     <meta name="description"
