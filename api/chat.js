@@ -18,7 +18,7 @@ export default async function handler(req) {
         return new Response('Method not allowed', { status: 405 });
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         return new Response(JSON.stringify({ error: 'API key not configured' }), {
             status: 500,
@@ -42,50 +42,31 @@ export default async function handler(req) {
         const body = await req.json();
         const { messages } = body;
 
-        // Convert any image_url messages that use base64 to text-only
-        // since free models may not support base64 image_url
-        const cleanedMessages = messages.map(msg => {
-            if (!Array.isArray(msg.content)) {
-                return msg;
-            }
-            // flatten content array: keep text parts, describe images as [screenshot attached]
-            const textParts = msg.content
-                .map(part => {
-                    if (part.type === 'text') return part.text;
-                    if (part.type === 'image_url') return '[user attached a screenshot]';
-                    return '';
+        const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: messages,
+                    generationConfig: {
+                        temperature: 0.9,
+                        maxOutputTokens: 2048,
+                    }
                 })
-                .filter(Boolean)
-                .join('\n');
-            return { role: msg.role, content: textParts };
-        });
+            }
+        );
 
-        const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://mochiii.vercel.app',
-                'X-Title': 'mochii'
-            },
-            body: JSON.stringify({
-                model: 'meta-llama/llama-3.3-70b-instruct:free',
-                messages: cleanedMessages,
-                temperature: 0.9,
-                max_tokens: 2048,
-            })
-        });
+        const data = await geminiRes.json();
 
-        const data = await orRes.json();
-
-        if (!orRes.ok) {
-            return new Response(JSON.stringify({ error: JSON.stringify(data.error) || 'OpenRouter error' }), {
-                status: orRes.status,
+        if (!geminiRes.ok) {
+            return new Response(JSON.stringify({ error: data.error?.message || 'Gemini error' }), {
+                status: geminiRes.status,
                 headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
             });
         }
 
-        const text = data.choices?.[0]?.message?.content || '';
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         return new Response(JSON.stringify({ text }), {
             status: 200,
