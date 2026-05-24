@@ -33,10 +33,11 @@
     <script>
         // why is there a comment here you may ask? well, i don't know. i just put it here. okay now go away this code is NOT interesting twin.
         const params = new URLSearchParams(window.location.search)
-        if (!params.get("launch")) {
-        window.location.replace('/start.html');
+        if (!params.get("launch") && !sessionStorage.getItem("launched")) {
+            window.location.replace('/start.html');
         } else {
-        history.replaceState(null, '', '/');  // 
+            sessionStorage.setItem("launched", "1");
+            history.replaceState(null, '', '/');
         }
         // ty sir cy
     </script>
@@ -61,13 +62,13 @@
 </head>
 
 <body>
-    <button id="gohomeblock" onclick="navTo('home?launch=1')">
+    <button id="gohomeblock" onclick="navTo('home')">
         <i class="ri-home-4-line"></i>
     </button>
     <nav>
         <ul>
             <li style="width: 40px;">
-                <a onclick="navTo('home?launch=1')" style="margin-top: 7.5px; margin-left: 10px;" href="#"
+                <a onclick="navTo('home')" style="margin-top: 7.5px; margin-left: 10px;" href="#"
                     data-page="home">
                     <div class="hcontainer">
                         <img src="/assets/img/fav.png" style="height: 24px; margin-top: -1px; margin-right: -0px;"
@@ -1221,12 +1222,16 @@
         })
 
         window.addEventListener("DOMContentLoaded", () => {
-            const params = new URLSearchParams(window.location.search)
-            if (!params.get("launch")) {
+            // sessionStorage check replaces the old ?launch param check so the
+            // home button no longer bounces back to /start.html
+            if (!sessionStorage.getItem("launched")) {
                 window.location.href = "/start.html"
             }
-            if (params.get("page") && params.get("launch")) {
-                navTo(params.get("page"))
+            if (sessionStorage.getItem("launched")) {
+                const p = new URLSearchParams(window.location.search)
+                if (p.get("page")) {
+                    navTo(p.get("page"))
+                }
             }
         })
     </script>
