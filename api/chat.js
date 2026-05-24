@@ -69,7 +69,7 @@ export default async function handler(req) {
                 'X-Title': 'mochii'
             },
             body: JSON.stringify({
-                model: 'google/gemma-4-31b-it:free',
+                model: 'meta-llama/llama-3.3-70b-instruct:free',
                 messages: cleanedMessages,
                 temperature: 0.9,
                 max_tokens: 2048,
