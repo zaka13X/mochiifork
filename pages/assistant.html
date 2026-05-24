@@ -43,47 +43,23 @@
 
         .container {
             display: flex;
-        }
-
-        .centerc {
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            position: absolute;
-        }
-
-        h1 {
-            color: var(--bright-text);
-            font-size: 2.5rem;
-        }
-
-        .hcenter {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
+            align-items: center;
         }
 
         button {
             backdrop-filter: blur(10px);
             background: color-mix(in srgb, var(--bg-2) 30%, transparent 70%);
-            border: 2px solid transparent;
-            box-shadow: 0 0 0 .5px rgba(255, 255, 255, 0.15),
-                0 16px 32px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 0 0 .5px rgba(255, 255, 255, 0.15), 0 16px 32px rgba(0, 0, 0, 0.12);
             color: white;
             padding: 10px 20px;
             border: none;
             border-radius: 20px;
             font-size: 25px;
-            font-weight: 200;
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
             margin: 2px;
-            bottom: 20px;
             position: relative;
-            bottom: 0px;
-            left: 5px;
         }
 
         button:hover {
@@ -95,35 +71,15 @@
             scale: .95;
         }
 
-        iframe {
-            background: var(--bg);
-            height: 100vh;
-            border-radius: 0px;
-            border: 0px solid var(--border-4);
-            width: 100%;
-            cursor: none;
-        }
-
-        button.disabled {
+        button.disabled, button:disabled {
             filter: brightness(0.5);
             cursor: not-allowed;
             pointer-events: none;
         }
 
-        button:disabled {
-            filter: brightness(0.5);
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        center p {
-            margin-bottom: -20px;
-            font-weight: 500;
-        }
-
-        .atbottom {
-            font-size: 14px;
-            opacity: .2;
+        button.active-btn {
+            background: color-mix(in srgb, var(--accent) 40%, transparent 60%);
+            box-shadow: 0 0 0 1px var(--accent), 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent 60%);
         }
 
         input {
@@ -133,6 +89,9 @@
             outline: none;
             backdrop-filter: blur(10px);
             width: 480px;
+            color: var(--text);
+            border: none;
+            font-size: 16px;
         }
 
         input::placeholder {
@@ -158,11 +117,9 @@
             align-items: flex-end;
         }
 
-
         .my-message {
             background: color-mix(in srgb, var(--bg-2) 75%, transparent 25%);
             padding: 15px;
-            border: 2px solid transparent;
             box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.10), 0 16px 32px rgba(0, 0, 0, 0.12);
             border-radius: 20px 20px 10px 20px;
             max-width: 400px;
@@ -174,7 +131,6 @@
         .ai-message {
             background: color-mix(in srgb, var(--bg) 75%, transparent 25%);
             padding: 15px;
-            border: 2px solid transparent;
             box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05), 0 16px 32px rgba(0, 0, 0, 0.12);
             border-radius: 20px 20px 20px 10px;
             margin-bottom: 20px;
@@ -182,9 +138,8 @@
             position: relative;
             left: 0;
             align-self: flex-start;
-            overflow-wrap: break-word !important;
-            white-space: pre-wrap !important;
-            word-break: break-word !important;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         .ai-message pre {
@@ -195,26 +150,21 @@
             margin: 8px 0;
         }
 
-        .ai-message code {
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
+        .ai-message code { font-family: 'Courier New', monospace; font-size: 0.9em; }
+        .ai-message pre code { background: none; padding: 0; }
+        .ai-message p { margin: 8px 0; }
 
-        .ai-message pre code {
-            background: none;
-            padding: 0;
-        }
-
-        .ai-message p {
-            margin: 8px 0;
+        .screenshot-preview {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         svg.loading {
             width: 1.25em;
             transform-origin: center;
             animation: rotate4 1.2s linear infinite;
-            transition: 0.2s;
-            scale: 1;
             position: absolute;
             top: 5px;
             left: 5px;
@@ -230,53 +180,91 @@
             animation: dash4 1.5s ease-in-out infinite;
         }
 
-        @keyframes rotate4 {
-            100% {
-                transform: rotate(360deg);
-            }
-        }
+        @keyframes rotate4 { 100% { transform: rotate(360deg); } }
 
         @keyframes dash4 {
-            0% {
-                stroke-dasharray: 1, 200;
-                stroke-dashoffset: 0;
-            }
-
-            50% {
-                stroke-dasharray: 90, 200;
-                stroke-dashoffset: -35px;
-            }
-
-            100% {
-                stroke-dashoffset: -125px;
-            }
+            0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; }
+            50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35px; }
+            100% { stroke-dashoffset: -125px; }
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: var(--bg-3);
-            border-radius: 2000px;
+        /* screenshare preview bar */
+        #screen-preview-bar {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: color-mix(in srgb, var(--bg-2) 80%, transparent 20%);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 10px 16px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            font-size: 14px;
+            color: var(--text);
         }
 
-        ::-webkit-scrollbar {
-            background: var(--bg);
-            width: 6px;
-            border-radius: 3842px;
+        #screen-preview-bar img {
+            height: 50px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.15);
         }
+
+        #screen-preview-bar .stop-btn {
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            background: rgba(255, 80, 80, 0.25);
+            color: #ff6b6b;
+        }
+
+        #screen-preview-bar .snap-btn {
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--accent) 30%, transparent 70%);
+        }
+
+        ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2000px; }
+        ::-webkit-scrollbar { background: var(--bg); width: 6px; border-radius: 3842px; }
     </style>
+
     <br><br><br><br>
 
-    <div class="container" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);">
-        <button style="left:0; margin-right: 5px;" onclick="switchResponseType()">
+    <!-- screen preview bar (shown when sharing) -->
+    <div id="screen-preview-bar">
+        <img id="screen-thumb" src="" alt="screen">
+        <span>screen shared</span>
+        <button class="snap-btn" onclick="captureSnapshot()" title="Attach snapshot to next message">
+            <i class="ri-screenshot-line"></i> snap
+        </button>
+        <button class="stop-btn" onclick="stopScreenShare()" title="Stop sharing">
+            <i class="ri-stop-circle-line"></i> stop
+        </button>
+    </div>
+
+    <div class="container" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); gap: 4px;">
+        <button onclick="toggleScreenShare()" id="share-btn" title="Share screen">
+            <i class="ri-computer-line"></i>
+        </button>
+        <button onclick="switchResponseType()" id="mode-btn" title="Switch mode">
             <i class="ri-image-ai-line"></i>
         </button>
-        <input type="text" placeholder="What's 2 + 2?">
-        <button onclick="sendMessage()">
+        <input type="text" id="chat-input" placeholder="Ask mochii AI...">
+        <button onclick="sendMessage()" id="send-btn">
             <i class="ri-corner-down-left-line"></i>
         </button>
     </div>
 
-    <div class="messages-container">
+    <div class="messages-container" id="messages">
     </div>
+
+    <!-- hidden canvas for snapshot -->
+    <canvas id="snap-canvas" style="display:none;"></canvas>
+    <!-- hidden video for screen capture -->
+    <video id="screen-video" style="display:none;" autoplay muted></video>
 
     <script>
         particlesJS.load('particles-container', '/assets/json/config/particles.json', function () {
@@ -290,9 +278,7 @@
             langPrefix: 'language-',
             highlight: function (code, lang) {
                 if (lang && hljs.getLanguage(lang)) {
-                    try {
-                        return hljs.highlight(code, { language: lang }).value;
-                    } catch (err) { }
+                    try { return hljs.highlight(code, { language: lang }).value; } catch (err) { }
                 }
                 return code;
             }
@@ -300,140 +286,251 @@
     </script>
     <script src="/assets/js/vm.js" defer></script>
     <div id="cursor-thank-you-zxs"
-        style="position: fixed; top: 0px; left: 0px; width: 16px; height: 16px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 70%, white 30%); pointer-events: none; z-index: 9999; transform: translate(748px, 592px); transition: width 0.15s, height 0.15s, opacity 0.15s; mix-blend-mode: difference; opacity: 0;">
-    </div>
+        style="position: fixed; top: 0px; left: 0px; width: 16px; height: 16px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 70%, white 30%); pointer-events: none; z-index: 9999; transform: translate(748px, 592px); transition: width 0.15s, height 0.15s, opacity 0.15s; mix-blend-mode: difference; opacity: 0;"></div>
     <script src="/assets/js/cursor.js"></script>
+
     <script>
-        const input = document.querySelector("input");
+        const input = document.getElementById("chat-input");
+        const messagesContainer = document.getElementById("messages");
         const placeholders = [
+            "Ask mochii AI...",
             "What's 2 + 2?",
             "How do I make a steak?",
-            "Generate me an image of...",
             "What can you do?",
-            "What's the weather in...",
-            "What's the difference between...",
+            "Explain this code...",
+            "What's on my screen?",
         ];
-
         input.placeholder = placeholders[Math.floor(Math.random() * placeholders.length)];
 
+        // ── conversation history ──────────────────────────────────────────
+        let history = [];
+        let responseType = "text";
+        let pendingSnapshot = null; // base64 image to attach to next message
+        let screenStream = null;
+        let thumbInterval = null;
+
+        // ── render helpers ────────────────────────────────────────────────
         function renderContent(container, markdown) {
-            let processed = markdown.replace(/\\\[/g, '$$').replace(/\\\]/g, '$$');
-            processed = processed.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
-
+            let processed = markdown
+                .replace(/\\\[/g, '$$').replace(/\\\]/g, '$$')
+                .replace(/\\\(/g, '$').replace(/\\\)/g, '$');
             container.innerHTML = marked.parse(processed);
-
-            container.querySelectorAll("pre code").forEach((block) => {
-                hljs.highlightElement(block);
-            });
-
+            container.querySelectorAll("pre code").forEach(b => hljs.highlightElement(b));
             renderMathInElement(container, {
                 delimiters: [
                     { left: "$$", right: "$$", display: true },
                     { left: "$", right: "$", display: false },
-                    { left: "\\[", right: "\\]", display: true },
-                    { left: "\\(", right: "\\)", display: false }
                 ],
                 throwOnError: false
             });
         }
 
-        function anim(container, markdown, speed) {
-            let i = 0;
-            let buffer = "";
-
-            function step() {
-                if (i < markdown.length) {
-                    buffer += markdown[i];
-                    container.textContent = buffer;
-                    i++;
-                    setTimeout(step, speed);
-                } else {
-                    renderContent(container, markdown);
-                }
-            }
-            step();
+        function scrollBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        async function askAi(prompt, type) {
-            let endpoint;
-            if (type === "text") {
-                endpoint = "https://text.pollinations.ai/";
-            } else {
-                endpoint = "https://image.pollinations.ai/prompt/";
+        function addUserMessage(text, imgBase64) {
+            const div = document.createElement("div");
+            div.classList.add("my-message");
+            if (imgBase64) {
+                const img = document.createElement("img");
+                img.src = "data:image/png;base64," + imgBase64;
+                img.classList.add("screenshot-preview");
+                div.appendChild(img);
             }
-            const text = encodeURIComponent(prompt.trim());
+            const p = document.createElement("p");
+            p.style.margin = "4px 0 0 0";
+            p.textContent = text;
+            div.appendChild(p);
+            messagesContainer.appendChild(div);
+            scrollBottom();
+        }
 
-            const cont = document.querySelector(".messages-container");
-
-            const myMessage = document.createElement("div");
-            myMessage.classList.add("my-message");
-            myMessage.textContent = prompt;
-            cont.append(myMessage);
-
+        function addLoadingMessage() {
             const div = document.createElement("div");
             div.classList.add("ai-message");
-            cont.append(div);
-            div.innerHTML = `<svg viewBox="25 25 50 50" class="loading">
-                <circle r="20" cy="50" cx="50"></circle>
-            </svg>`;
+            div.innerHTML = `<svg viewBox="25 25 50 50" class="loading"><circle r="20" cy="50" cx="50"></circle></svg>`;
+            messagesContainer.appendChild(div);
+            scrollBottom();
+            return div;
+        }
 
-            cont.scrollTop = cont.scrollHeight;
+        // ── gemini call via our proxy ─────────────────────────────────────
+        async function askGemini(userText, imgBase64) {
+            // build parts for this turn
+            const parts = [];
+            if (imgBase64) {
+                parts.push({ inlineData: { mimeType: "image/png", data: imgBase64 } });
+            }
+            parts.push({ text: userText });
 
-            const res = await fetch(endpoint + text);
-            if (!res.ok) {
-                div.innerHTML = "Error: There was a problem with the AI.";
+            // add to history
+            history.push({ role: "user", parts });
+
+            const loadingDiv = addLoadingMessage();
+
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messages: history })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    loadingDiv.textContent = "Error: " + (data.error || "something went wrong");
+                    return;
+                }
+
+                const reply = data.text;
+                history.push({ role: "model", parts: [{ text: reply }] });
+
+                loadingDiv.innerHTML = "";
+                renderContent(loadingDiv, reply);
+                scrollBottom();
+
+            } catch (err) {
+                loadingDiv.textContent = "Error: " + err.message;
+            }
+        }
+
+        // ── image generation (pollinations, unchanged) ────────────────────
+        async function generateImage(prompt) {
+            const loadingDiv = addLoadingMessage();
+            const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt);
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = prompt;
+            img.style.maxWidth = "100%";
+            img.style.borderRadius = "25px";
+            img.onload = () => { loadingDiv.innerHTML = ""; loadingDiv.appendChild(img); scrollBottom(); };
+            img.onerror = () => { loadingDiv.textContent = "Error generating image."; };
+        }
+
+        // ── send ──────────────────────────────────────────────────────────
+        async function sendMessage() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = "";
+
+            if (responseType === "image") {
+                addUserMessage(text);
+                generateImage(text);
                 return;
             }
 
-            if (responseType === "text") {
-                const data = await res.text();
-                console.log("AI RESPONSE:" + data);
+            const snap = pendingSnapshot;
+            pendingSnapshot = null;
+            updateSnapIndicator();
 
-                div.innerHTML = ``;
-                anim(div, data, 10);
-            } else {
-                const img = document.createElement("img");
-                img.src = endpoint + text;
-                img.alt = prompt;
-                img.style.maxWidth = "100%";
-                img.style.borderRadius = "25px";
-                div.innerHTML = ``;
-                div.append(img);
-            }
-
-            cont.scrollTop = cont.scrollHeight;
-        }
-
-        let responseType = "text";
-
-        function sendMessage() {
-            if (input.value.trim()) {
-                askAi(input.value, responseType);
-                input.value = "";
-            }
+            addUserMessage(text, snap);
+            await askGemini(text, snap);
         }
 
         input.addEventListener("keydown", e => {
-            if (e.key === "Enter") {
-                sendMessage();
-            }
+            if (e.key === "Enter") sendMessage();
         });
 
+        // ── mode toggle ───────────────────────────────────────────────────
         function switchResponseType() {
+            const btn = document.getElementById("mode-btn");
+            const icon = btn.querySelector("i");
             if (responseType === "text") {
                 responseType = "image";
-                const icon = document.querySelector(".ri-image-ai-line");
-                icon.classList.remove("ri-image-ai-line");
-                icon.classList.add("ri-ai-generate-text");
-                console.log("switched to image");
+                icon.className = "ri-ai-generate-text";
                 input.placeholder = "Describe your image...";
+                btn.classList.add("active-btn");
             } else {
                 responseType = "text";
-                const icon = document.querySelector(".ri-ai-generate-text");
-                icon.classList.remove("ri-ai-generate-text");
-                icon.classList.add("ri-image-ai-line");
-                console.log("switched to text");
-                input.placeholder = "Ask the AI something...";
+                icon.className = "ri-image-ai-line";
+                input.placeholder = "Ask mochii AI...";
+                btn.classList.remove("active-btn");
+            }
+        }
+
+        // ── screenshare ───────────────────────────────────────────────────
+        const shareBtn = document.getElementById("share-btn");
+        const previewBar = document.getElementById("screen-preview-bar");
+        const screenVideo = document.getElementById("screen-video");
+        const snapCanvas = document.getElementById("snap-canvas");
+        const screenThumb = document.getElementById("screen-thumb");
+
+        async function toggleScreenShare() {
+            if (screenStream) {
+                stopScreenShare();
+            } else {
+                await startScreenShare();
+            }
+        }
+
+        async function startScreenShare() {
+            try {
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always" },
+                    audio: false
+                });
+                screenVideo.srcObject = screenStream;
+
+                screenStream.getVideoTracks()[0].addEventListener("ended", stopScreenShare);
+
+                shareBtn.classList.add("active-btn");
+                previewBar.style.display = "flex";
+
+                // update thumbnail every 2s
+                thumbInterval = setInterval(updateThumb, 2000);
+                setTimeout(updateThumb, 500);
+
+            } catch (err) {
+                console.log("Screen share cancelled or denied:", err.message);
+            }
+        }
+
+        function stopScreenShare() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+            }
+            clearInterval(thumbInterval);
+            screenVideo.srcObject = null;
+            shareBtn.classList.remove("active-btn");
+            previewBar.style.display = "none";
+            pendingSnapshot = null;
+            updateSnapIndicator();
+        }
+
+        function updateThumb() {
+            if (!screenStream) return;
+            snapCanvas.width = screenVideo.videoWidth;
+            snapCanvas.height = screenVideo.videoHeight;
+            const ctx = snapCanvas.getContext("2d");
+            ctx.drawImage(screenVideo, 0, 0);
+            screenThumb.src = snapCanvas.toDataURL("image/jpeg", 0.4);
+        }
+
+        function captureSnapshot() {
+            if (!screenStream) return;
+            snapCanvas.width = screenVideo.videoWidth;
+            snapCanvas.height = screenVideo.videoHeight;
+            const ctx = snapCanvas.getContext("2d");
+            ctx.drawImage(screenVideo, 0, 0);
+            // get full quality png, strip the data: prefix
+            pendingSnapshot = snapCanvas.toDataURL("image/png").split(",")[1];
+            updateSnapIndicator();
+            input.focus();
+            input.placeholder = "Ask about your screenshot...";
+        }
+
+        function updateSnapIndicator() {
+            const sendBtn = document.getElementById("send-btn");
+            if (pendingSnapshot) {
+                sendBtn.classList.add("active-btn");
+                sendBtn.title = "Send with screenshot";
+            } else {
+                sendBtn.classList.remove("active-btn");
+                sendBtn.title = "Send";
+                if (responseType === "text") input.placeholder = "Ask mochii AI...";
             }
         }
     </script>
