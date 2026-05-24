@@ -3,6 +3,17 @@ export const config = {
 };
 
 export default async function handler(req) {
+    if (req.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+            }
+        });
+    }
+
     if (req.method !== 'POST') {
         return new Response('Method not allowed', { status: 405 });
     }
@@ -31,6 +42,24 @@ export default async function handler(req) {
         const body = await req.json();
         const { messages } = body;
 
+        // Convert any image_url messages that use base64 to text-only
+        // since free models may not support base64 image_url
+        const cleanedMessages = messages.map(msg => {
+            if (!Array.isArray(msg.content)) {
+                return msg;
+            }
+            // flatten content array: keep text parts, describe images as [screenshot attached]
+            const textParts = msg.content
+                .map(part => {
+                    if (part.type === 'text') return part.text;
+                    if (part.type === 'image_url') return '[user attached a screenshot]';
+                    return '';
+                })
+                .filter(Boolean)
+                .join('\n');
+            return { role: msg.role, content: textParts };
+        });
+
         const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -41,7 +70,7 @@ export default async function handler(req) {
             },
             body: JSON.stringify({
                 model: 'google/gemma-4-31b-it:free',
-                messages: messages,
+                messages: cleanedMessages,
                 temperature: 0.9,
                 max_tokens: 2048,
             })
@@ -50,9 +79,9 @@ export default async function handler(req) {
         const data = await orRes.json();
 
         if (!orRes.ok) {
-            return new Response(JSON.stringify({ error: data.error?.message || 'OpenRouter error' }), {
+            return new Response(JSON.stringify({ error: JSON.stringify(data.error) || 'OpenRouter error' }), {
                 status: orRes.status,
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
             });
         }
 
@@ -69,7 +98,7 @@ export default async function handler(req) {
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         });
     }
 }
