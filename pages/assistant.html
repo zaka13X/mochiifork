@@ -355,20 +355,17 @@
             return div;
         }
 
-        // ── openrouter call via our proxy ────────────────────────────────
+        // ── gemini call via our proxy ─────────────────────────────────────
         async function askGemini(userText, imgBase64) {
-            // build OpenAI-format content for this turn
-            const content = [];
+            // build parts for this turn
+            const parts = [];
             if (imgBase64) {
-                content.push({
-                    type: "image_url",
-                    image_url: { url: "data:image/png;base64," + imgBase64 }
-                });
+                parts.push({ inlineData: { mimeType: "image/png", data: imgBase64 } });
             }
-            content.push({ type: "text", text: userText });
+            parts.push({ text: userText });
 
-            // add to history in OpenAI format
-            history.push({ role: "user", content });
+            // add to history
+            history.push({ role: "user", parts });
 
             const loadingDiv = addLoadingMessage();
 
@@ -387,7 +384,7 @@
                 }
 
                 const reply = data.text;
-                history.push({ role: "assistant", content: reply });
+                history.push({ role: "model", parts: [{ text: reply }] });
 
                 loadingDiv.innerHTML = "";
                 renderContent(loadingDiv, reply);
