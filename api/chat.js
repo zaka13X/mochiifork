@@ -14,7 +14,7 @@ export default async function handler(req) {
             headers: { 'Content-Type': 'application/json' }
         });
     }
-
+// fuck
     const origin = req.headers.get('origin') || '';
     const referer = req.headers.get('referer') || '';
     const allowed = ['mochiii.vercel.app', 'localhost'];
