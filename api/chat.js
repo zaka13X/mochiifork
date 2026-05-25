@@ -17,7 +17,9 @@ export default async function handler(req) {
 // fuck
     const origin = req.headers.get('origin') || '';
     const referer = req.headers.get('referer') || '';
-    const allowed = ['mochiii.vercel.app', 'localhost'];
+    // quick test dw abt ts
+    const allowed = ['mochiii.vercel.app', 'localhost', '127.0.0.1'];
+
     const isAllowed = allowed.some(domain => origin.includes(domain) || referer.includes(domain));
 
     if (!isAllowed) {
