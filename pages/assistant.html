@@ -471,7 +471,7 @@
         async function startScreenShare() {
             try {
                 screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { cursor: "always" },
+                    video: { cursor: "always", displaySurface: "monitor" },
                     audio: false
                 });
                 screenVideo.srcObject = screenStream;
