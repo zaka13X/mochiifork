@@ -3,23 +3,32 @@ export const config = {
 };
 
 export default async function handler(req) {
+    if (req.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+            }
+        });
+    }
+
     if (req.method !== 'POST') {
         return new Response('Method not allowed', { status: 405 });
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
         return new Response(JSON.stringify({ error: 'API key not configured' }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         });
     }
-// fuck
+
     const origin = req.headers.get('origin') || '';
     const referer = req.headers.get('referer') || '';
-    // quick test dw abt ts
-    const allowed = ['mochiii.vercel.app', 'localhost', '127.0.0.1'];
-
+    const allowed = ['mochiii.vercel.app', 'localhost'];
     const isAllowed = allowed.some(domain => origin.includes(domain) || referer.includes(domain));
 
     if (!isAllowed) {
@@ -33,28 +42,26 @@ export default async function handler(req) {
         const body = await req.json();
         const { messages } = body;
 
-        const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://mochiii.vercel.app',
-                'X-Title': 'mochii'
             },
             body: JSON.stringify({
-                model: 'nvidia/nemotron-3-super-120b-a12b:free',
+                model: 'meta-llama/llama-4-scout-17b-16e-instruct',
                 messages: messages,
                 temperature: 0.9,
                 max_tokens: 2048,
             })
         });
 
-        const data = await orRes.json();
+        const data = await groqRes.json();
 
-        if (!orRes.ok) {
-            return new Response(JSON.stringify({ error: data.error?.message || 'OpenRouter error' }), {
-                status: orRes.status,
-                headers: { 'Content-Type': 'application/json' }
+        if (!groqRes.ok) {
+            return new Response(JSON.stringify({ error: JSON.stringify(data.error) || 'Groq error' }), {
+                status: groqRes.status,
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
             });
         }
 
@@ -71,7 +78,7 @@ export default async function handler(req) {
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), {
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
         });
     }
 }
