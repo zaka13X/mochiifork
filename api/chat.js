@@ -7,7 +7,7 @@ export default async function handler(req) {
         return new Response('Method not allowed', { status: 405 });
     }
 
-    const apiKey = process.env.OR_TEST;
+    const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
         return new Response(JSON.stringify({ error: 'API key not configured' }), {
             status: 500,
@@ -40,7 +40,7 @@ export default async function handler(req) {
                 'X-Title': 'mochii'
             },
             body: JSON.stringify({
-                model: 'google/gemma-4-31b-it:free',
+                model: 'nvidia/nemotron-3-super-120b-a12b:free',
                 messages: messages,
                 temperature: 0.9,
                 max_tokens: 2048,
