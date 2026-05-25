@@ -369,9 +369,6 @@
         <button onclick="toggleScreenShare()" id="share-btn" title="Share screen">
             <i class="ri-computer-line"></i>
         </button>
-        <button onclick="openPiP()" id="pip-btn" title="Pop out chat">
-            <i class="ri-picture-in-picture-line"></i>
-        </button>
         <button onclick="switchResponseType()" id="mode-btn" title="Switch mode">
             <i class="ri-image-ai-line"></i>
         </button>
@@ -624,6 +621,7 @@
                 shareBtn.classList.add("active-btn");
                 previewBar.style.display = "flex";
                 showOverlay();
+                openPiP();
 
                 // wait for video to have frames before capturing
                 await new Promise(resolve => {
@@ -650,6 +648,7 @@
             shareBtn.classList.remove("active-btn");
             previewBar.style.display = "none";
             hideOverlay();
+            if (pipWindow) { pipWindow.close(); pipWindow = null; }
             pendingSnapshot = null;
             updateSnapIndicator();
         }
