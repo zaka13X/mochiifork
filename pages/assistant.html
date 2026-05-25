@@ -362,7 +362,7 @@
             if (imgBase64) {
                 content.push({
                     type: "image_url",
-                    image_url: { url: "data:image/png;base64," + imgBase64 }
+                    image_url: { url: "data:image/jpeg;base64," + imgBase64 }
                 });
             }
             content.push({ type: "text", text: userText });
@@ -481,9 +481,15 @@
                 shareBtn.classList.add("active-btn");
                 previewBar.style.display = "flex";
 
+                // wait for video to have frames before capturing
+                await new Promise(resolve => {
+                    if (screenVideo.readyState >= 2) { resolve(); return; }
+                    screenVideo.addEventListener("canplay", resolve, { once: true });
+                });
+
                 // update thumbnail every 2s
                 thumbInterval = setInterval(updateThumb, 2000);
-                setTimeout(updateThumb, 500);
+                updateThumb();
 
             } catch (err) {
                 console.log("Screen share cancelled or denied:", err.message);
@@ -514,12 +520,15 @@
 
         function captureSnapshot() {
             if (!screenStream) return;
-            snapCanvas.width = screenVideo.videoWidth;
-            snapCanvas.height = screenVideo.videoHeight;
+            // scale down to max 1280px wide to keep under Groq's 20MB limit
+            const maxW = 1280;
+            const scale = Math.min(1, maxW / screenVideo.videoWidth);
+            snapCanvas.width = Math.round(screenVideo.videoWidth * scale);
+            snapCanvas.height = Math.round(screenVideo.videoHeight * scale);
             const ctx = snapCanvas.getContext("2d");
-            ctx.drawImage(screenVideo, 0, 0);
-            // get full quality png, strip the data: prefix
-            pendingSnapshot = snapCanvas.toDataURL("image/png").split(",")[1];
+            ctx.drawImage(screenVideo, 0, 0, snapCanvas.width, snapCanvas.height);
+            // use JPEG at 0.85 quality to keep size small
+            pendingSnapshot = snapCanvas.toDataURL("image/jpeg", 0.85).split(",")[1];
             updateSnapIndicator();
             input.focus();
             input.placeholder = "Ask about your screenshot...";
