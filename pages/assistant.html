@@ -229,6 +229,126 @@
 
         ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2000px; }
         ::-webkit-scrollbar { background: var(--bg); width: 6px; border-radius: 3842px; }
+
+        /* ── floating overlay widget ─────────────────────────────────────── */
+        #overlay-widget {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 340px;
+            background: color-mix(in srgb, var(--bg-2) 85%, transparent 15%);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 16px 40px rgba(0,0,0,0.4);
+            border-radius: 16px;
+            z-index: 9998;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #overlay-widget.minimized #overlay-body {
+            display: none;
+        }
+
+        #overlay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            cursor: grab;
+            background: color-mix(in srgb, var(--bg-3) 60%, transparent 40%);
+            font-size: 13px;
+            color: var(--text);
+            gap: 8px;
+        }
+
+        #overlay-header:active { cursor: grabbing; }
+
+        #overlay-header span {
+            font-weight: 600;
+            flex: 1;
+            opacity: 0.8;
+        }
+
+        #overlay-header .overlay-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        #overlay-header button {
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            box-shadow: none;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        #overlay-body {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #overlay-messages {
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        #overlay-messages .ov-user {
+            align-self: flex-end;
+            background: color-mix(in srgb, var(--accent) 30%, transparent 70%);
+            padding: 6px 10px;
+            border-radius: 12px 12px 4px 12px;
+            max-width: 90%;
+            word-break: break-word;
+        }
+
+        #overlay-messages .ov-ai {
+            align-self: flex-start;
+            background: color-mix(in srgb, var(--bg) 80%, transparent 20%);
+            padding: 6px 10px;
+            border-radius: 12px 12px 12px 4px;
+            max-width: 90%;
+            word-break: break-word;
+        }
+
+        #overlay-input-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #overlay-input {
+            flex: 1;
+            width: auto;
+            font-size: 13px;
+            padding: 8px 12px;
+            border-radius: 12px;
+        }
+
+        #overlay-send {
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin: 0;
+        }
+
+        #overlay-snap {
+            font-size: 13px;
+            padding: 6px 10px;
+            border-radius: 10px;
+            margin: 0;
+            background: color-mix(in srgb, var(--accent) 25%, transparent 75%);
+        }
+
     </style>
 
     <br><br><br><br>
@@ -265,6 +385,26 @@
     <canvas id="snap-canvas" style="display:none;"></canvas>
     <!-- hidden video for screen capture -->
     <video id="screen-video" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;" autoplay muted playsinline></video>
+
+
+    <!-- ── floating overlay widget ──────────────────────────────────────── -->
+    <div id="overlay-widget">
+        <div id="overlay-header">
+            <span>🌸 mochii ai</span>
+            <div class="overlay-btns">
+                <button onclick="captureSnapshot(); overlaySnap();" id="overlay-snap-btn" title="Snap screen"><i class="ri-screenshot-line"></i></button>
+                <button onclick="toggleOverlayMinimize()" id="overlay-min-btn" title="Minimize"><i class="ri-subtract-line"></i></button>
+                <button onclick="hideOverlay()" title="Close"><i class="ri-close-line"></i></button>
+            </div>
+        </div>
+        <div id="overlay-body">
+            <div id="overlay-messages"></div>
+            <div id="overlay-input-row">
+                <input type="text" id="overlay-input" placeholder="Ask about your screen...">
+                <button id="overlay-send" onclick="overlaySend()"><i class="ri-corner-down-left-line"></i></button>
+            </div>
+        </div>
+    </div>
 
     <script>
         particlesJS.load('particles-container', '/assets/json/config/particles.json', function () {
@@ -480,6 +620,7 @@
 
                 shareBtn.classList.add("active-btn");
                 previewBar.style.display = "flex";
+                showOverlay();
 
                 // wait for video to have frames before capturing
                 await new Promise(resolve => {
@@ -505,6 +646,7 @@
             screenVideo.srcObject = null;
             shareBtn.classList.remove("active-btn");
             previewBar.style.display = "none";
+            hideOverlay();
             pendingSnapshot = null;
             updateSnapIndicator();
         }
@@ -561,6 +703,115 @@
                 if (responseType === "text") input.placeholder = "Ask mochii AI...";
             }
         }
+
+        // ── overlay widget ────────────────────────────────────────────────
+        const overlayWidget = document.getElementById("overlay-widget");
+        const overlayMessages = document.getElementById("overlay-messages");
+        const overlayInput = document.getElementById("overlay-input");
+
+        function showOverlay() {
+            overlayWidget.style.display = "flex";
+        }
+
+        function hideOverlay() {
+            overlayWidget.style.display = "none";
+        }
+
+        function toggleOverlayMinimize() {
+            const btn = document.getElementById("overlay-min-btn").querySelector("i");
+            overlayWidget.classList.toggle("minimized");
+            btn.className = overlayWidget.classList.contains("minimized") ? "ri-add-line" : "ri-subtract-line";
+        }
+
+        function overlaySnap() {
+            // snapshot already captured by captureSnapshot(), just show indicator
+            overlayInput.placeholder = "Ask about your screenshot...";
+            overlayInput.focus();
+        }
+
+        function addOverlayMessage(text, isUser) {
+            const div = document.createElement("div");
+            div.className = isUser ? "ov-user" : "ov-ai";
+            div.textContent = text;
+            overlayMessages.appendChild(div);
+            overlayMessages.scrollTop = overlayMessages.scrollHeight;
+        }
+
+        async function overlaySend() {
+            const text = overlayInput.value.trim();
+            if (!text) return;
+            overlayInput.value = "";
+
+            addOverlayMessage(text, true);
+
+            const snap = pendingSnapshot;
+            pendingSnapshot = null;
+            updateSnapIndicator();
+
+            // also add to main chat
+            addUserMessage(text, snap);
+
+            // show loading in overlay
+            const loading = document.createElement("div");
+            loading.className = "ov-ai";
+            loading.textContent = "...";
+            overlayMessages.appendChild(loading);
+            overlayMessages.scrollTop = overlayMessages.scrollHeight;
+
+            // reuse askGemini logic
+            const content = [];
+            if (snap) content.push({ type: "image_url", image_url: { url: "data:image/jpeg;base64," + snap } });
+            content.push({ type: "text", text });
+            history.push({ role: "user", content });
+
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messages: history })
+                });
+                const data = await res.json();
+                const reply = data.text || data.error || "something went wrong";
+                history.push({ role: "assistant", content: reply });
+                loading.textContent = reply;
+                overlayMessages.scrollTop = overlayMessages.scrollHeight;
+
+                // also render in main chat
+                const mainDiv = addLoadingMessage();
+                mainDiv.innerHTML = "";
+                renderContent(mainDiv, reply);
+                scrollBottom();
+            } catch (err) {
+                loading.textContent = "Error: " + err.message;
+            }
+        }
+
+        overlayInput.addEventListener("keydown", e => {
+            if (e.key === "Enter") overlaySend();
+        });
+
+        // ── drag logic ────────────────────────────────────────────────────
+        let dragging = false, dragOffX = 0, dragOffY = 0;
+
+        document.getElementById("overlay-header").addEventListener("mousedown", e => {
+            if (e.target.closest("button")) return;
+            dragging = true;
+            const rect = overlayWidget.getBoundingClientRect();
+            dragOffX = e.clientX - rect.left;
+            dragOffY = e.clientY - rect.top;
+            overlayWidget.style.transition = "none";
+        });
+
+        document.addEventListener("mousemove", e => {
+            if (!dragging) return;
+            overlayWidget.style.right = "auto";
+            overlayWidget.style.bottom = "auto";
+            overlayWidget.style.left = (e.clientX - dragOffX) + "px";
+            overlayWidget.style.top = (e.clientY - dragOffY) + "px";
+        });
+
+        document.addEventListener("mouseup", () => { dragging = false; });
+
     </script>
 </body>
 
