@@ -355,17 +355,20 @@
             return div;
         }
 
-        // ── gemini call via our proxy ─────────────────────────────────────
+        // ── groq call via our proxy ───────────────────────────────────────
         async function askGemini(userText, imgBase64) {
-            // build parts for this turn
-            const parts = [];
+            // build OpenAI-format content for this turn
+            const content = [];
             if (imgBase64) {
-                parts.push({ inlineData: { mimeType: "image/png", data: imgBase64 } });
+                content.push({
+                    type: "image_url",
+                    image_url: { url: "data:image/png;base64," + imgBase64 }
+                });
             }
-            parts.push({ text: userText });
+            content.push({ type: "text", text: userText });
 
-            // add to history
-            history.push({ role: "user", parts });
+            // add to history in OpenAI format
+            history.push({ role: "user", content });
 
             const loadingDiv = addLoadingMessage();
 
@@ -384,7 +387,7 @@
                 }
 
                 const reply = data.text;
-                history.push({ role: "model", parts: [{ text: reply }] });
+                history.push({ role: "assistant", content: reply });
 
                 loadingDiv.innerHTML = "";
                 renderContent(loadingDiv, reply);
