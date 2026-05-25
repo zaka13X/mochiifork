@@ -648,7 +648,7 @@
             shareBtn.classList.remove("active-btn");
             previewBar.style.display = "none";
             hideOverlay();
-            if (pipWindow) { pipWindow.close(); pipWindow = null; }
+            if (popupWindow && !popupWindow.closed) { popupWindow.close(); popupWindow = null; }
             pendingSnapshot = null;
             updateSnapIndicator();
         }
@@ -707,149 +707,24 @@
         }
 
 
-        // ── Picture-in-Picture chat window ────────────────────────────────
-        let pipWindow = null;
+        // ── Pop-out chat window ──────────────────────────────────────────
+        let popupWindow = null;
 
-        async function openPiP() {
-            if (!('documentPictureInPicture' in window)) {
-                alert("Your browser doesn't support Document Picture-in-Picture. Try Chrome 116+.");
+        function openPiP() {
+            if (popupWindow && !popupWindow.closed) {
+                popupWindow.focus();
                 return;
             }
 
-            if (pipWindow) {
-                pipWindow.close();
-                pipWindow = null;
-                document.getElementById("pip-btn").classList.remove("active-btn");
-                return;
-            }
+            const w = 360, h = 520;
+            const left = window.screen.width - w - 20;
+            const top = window.screen.height - h - 60;
 
-            pipWindow = await window.documentPictureInPicture.requestWindow({
-                width: 360,
-                height: 500,
-            });
-
-            document.getElementById("pip-btn").classList.add("active-btn");
-
-            // Copy styles into PiP window
-            [...document.styleSheets].forEach(sheet => {
-                try {
-                    const rules = [...sheet.cssRules].map(r => r.cssText).join('');
-                    const style = pipWindow.document.createElement('style');
-                    style.textContent = rules;
-                    pipWindow.document.head.appendChild(style);
-                } catch(e) {}
-            });
-
-            // Copy color CSS vars link
-            const colorLink = pipWindow.document.createElement('link');
-            colorLink.rel = 'stylesheet';
-            colorLink.href = '/assets/css/colors.css';
-            pipWindow.document.head.appendChild(colorLink);
-
-            const iconLink = pipWindow.document.createElement('link');
-            iconLink.rel = 'stylesheet';
-            iconLink.href = '/assets/icons/fonts/remixicon.css';
-            pipWindow.document.head.appendChild(iconLink);
-
-            pipWindow.document.body.style.cssText = `
-                margin: 0;
-                background: var(--bg, #1a0a1e);
-                color: var(--text, #fff);
-                font-family: sans-serif;
-                display: flex;
-                flex-direction: column;
-                height: 100vh;
-                overflow: hidden;
-            `;
-
-            pipWindow.document.body.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.05);font-size:13px;font-weight:600;">
-                    <span>🌸 mochii ai</span>
-                    <button id="pip-snap" style="font-size:12px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,0.1);border:none;color:white;cursor:pointer;">📷 snap</button>
-                </div>
-                <div id="pip-msgs" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;font-size:13px;"></div>
-                <div style="padding:8px;display:flex;gap:6px;">
-                    <input id="pip-input" type="text" placeholder="Ask about your screen..." style="flex:1;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,0.08);border:none;color:white;font-size:13px;outline:none;">
-                    <button id="pip-send" style="padding:8px 12px;border-radius:12px;background:rgba(255,255,255,0.1);border:none;color:white;cursor:pointer;font-size:16px;">↵</button>
-                </div>
-            `;
-
-            const pipMsgs = pipWindow.document.getElementById("pip-msgs");
-            const pipInput = pipWindow.document.getElementById("pip-input");
-
-            // Sync existing messages
-            history.forEach(msg => {
-                const isUser = msg.role === "user";
-                const text = Array.isArray(msg.content)
-                    ? msg.content.find(c => c.type === "text")?.text || ""
-                    : msg.content;
-                if (!text) return;
-                addPipMessage(text, isUser);
-            });
-
-            function addPipMessage(text, isUser) {
-                const div = pipWindow.document.createElement("div");
-                div.style.cssText = isUser
-                    ? "align-self:flex-end;background:rgba(180,100,220,0.3);padding:6px 10px;border-radius:12px 12px 4px 12px;max-width:90%;word-break:break-word;"
-                    : "align-self:flex-start;background:rgba(255,255,255,0.08);padding:6px 10px;border-radius:12px 12px 12px 4px;max-width:90%;word-break:break-word;";
-                div.textContent = text;
-                pipMsgs.appendChild(div);
-                pipMsgs.scrollTop = pipMsgs.scrollHeight;
-                return div;
-            }
-
-            async function pipSend() {
-                const text = pipInput.value.trim();
-                if (!text) return;
-                pipInput.value = "";
-
-                addPipMessage(text, true);
-                addUserMessage(text, pendingSnapshot);
-
-                const snap = pendingSnapshot;
-                pendingSnapshot = null;
-                updateSnapIndicator();
-
-                const content = [];
-                if (snap) content.push({ type: "image_url", image_url: { url: "data:image/jpeg;base64," + snap } });
-                content.push({ type: "text", text });
-                history.push({ role: "user", content });
-
-                const loading = addPipMessage("...", false);
-
-                try {
-                    const res = await fetch("/api/chat", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ messages: history })
-                    });
-                    const data = await res.json();
-                    const reply = data.text || data.error || "something went wrong";
-                    history.push({ role: "assistant", content: reply });
-                    loading.textContent = reply;
-                    pipMsgs.scrollTop = pipMsgs.scrollHeight;
-
-                    const mainDiv = addLoadingMessage();
-                    mainDiv.innerHTML = "";
-                    renderContent(mainDiv, reply);
-                    scrollBottom();
-                } catch (err) {
-                    loading.textContent = "Error: " + err.message;
-                }
-            }
-
-            pipWindow.document.getElementById("pip-send").onclick = pipSend;
-            pipWindow.document.getElementById("pip-snap").onclick = () => {
-                captureSnapshot();
-                pipInput.placeholder = "Ask about your screenshot...";
-                pipInput.focus();
-            };
-            pipInput.addEventListener("keydown", e => { if (e.key === "Enter") pipSend(); });
-
-            pipWindow.addEventListener("pagehide", () => {
-                pipWindow = null;
-                document.getElementById("pip-btn").classList.remove("active-btn");
-            });
+            popupWindow = window.open(
+                '/pages/assistant.html#popup',
+                'mochii_popup',
+                `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no,alwaysOnTop=yes`
+            );
         }
 
         // ── overlay widget ────────────────────────────────────────────────
