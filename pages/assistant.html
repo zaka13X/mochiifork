@@ -713,29 +713,35 @@
         let pipWindow = null;
 
         function buildPiPContent(win, doc) {
+            // grab accent color from parent
+            const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#b060e0';
+            const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#1a0a1e';
+            const bg2 = getComputedStyle(document.documentElement).getPropertyValue('--bg-2').trim() || '#2a0a2e';
+            const text = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#ffffff';
+
             doc.open(); doc.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#1e0a2e;color:#fff;font-family:system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-#hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.08)}
+body{background:\${bg};color:\${text};font-family:system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:\${bg2};border-bottom:1px solid rgba(255,255,255,0.08)}
 #hdr span{font-size:13px;font-weight:600;opacity:.85}
-#hdr button{background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
+#hdr button{background:rgba(255,255,255,0.1);border:none;color:\${text};border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
 #hdr button:hover{background:rgba(255,255,255,0.18)}
 #msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
 #msgs::-webkit-scrollbar{width:3px}
 #msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:99px}
-.mu{align-self:flex-end;background:rgba(160,80,220,0.4);padding:8px 12px;border-radius:14px 14px 4px 14px;max-width:88%;word-break:break-word}
-.ma{align-self:flex-start;background:rgba(255,255,255,0.08);padding:8px 12px;border-radius:14px 14px 14px 4px;max-width:88%;word-break:break-word;line-height:1.5}
+.mu{align-self:flex-end;background:\${accent}66;padding:8px 12px;border-radius:14px 14px 4px 14px;max-width:88%;word-break:break-word;border:1px solid \${accent}99}
+.ma{align-self:flex-start;background:rgba(255,255,255,0.07);padding:8px 12px;border-radius:14px 14px 14px 4px;max-width:88%;word-break:break-word;line-height:1.5}
 .ma img,.mu img{max-width:100%;border-radius:8px;margin-bottom:6px;display:block}
-#bar{display:flex;gap:6px;padding:10px 12px;background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.07);align-items:center}
-#si{display:none;font-size:11px;padding:3px 8px;border-radius:8px;background:rgba(160,80,220,0.3);white-space:nowrap}
-#inp{flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:12px;padding:8px 12px;font-size:13px;outline:none}
-#inp:focus{border-color:rgba(160,80,220,0.6)}
+#bar{display:flex;gap:6px;padding:10px 12px;background:\${bg2};border-top:1px solid rgba(255,255,255,0.07);align-items:center}
+#si{display:none;font-size:11px;padding:3px 8px;border-radius:8px;background:\${accent}44;white-space:nowrap}
+#inp{flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:\${text};border-radius:12px;padding:8px 12px;font-size:13px;outline:none}
+#inp:focus{border-color:\${accent}}
 #inp::placeholder{color:rgba(255,255,255,0.3)}
-#snd{background:rgba(160,80,220,0.45);border:none;color:#fff;border-radius:12px;padding:8px 12px;font-size:16px;cursor:pointer}
-#snd:hover{background:rgba(160,80,220,0.65)}
+#snd{background:\${accent}77;border:none;color:#fff;border-radius:12px;padding:8px 12px;font-size:16px;cursor:pointer}
+#snd:hover{background:\${accent}aa}
 </style></head><body>
 <div id="hdr"><span>🌸 mochii ai</span><button id="snpb">📷 snap</button></div>
 <div id="msgs"></div>
@@ -791,26 +797,24 @@ body{background:#1e0a2e;color:#fff;font-family:system-ui,sans-serif;height:100vh
             if (win.addEventListener) win.addEventListener("unload", ()=>{ pipWindow=null; });
         }
 
-        async function openPiP() {
+        function openPiP() {
             if (pipWindow && !pipWindow.closed) { pipWindow.focus(); return; }
 
-            // Try Document Picture-in-Picture (Chrome 116+, no address bar)
-            if ('documentPictureInPicture' in window) {
-                try {
-                    pipWindow = await window.documentPictureInPicture.requestWindow({width:360,height:500});
+            // Document Picture-in-Picture — must be called synchronously from user gesture
+            window.documentPictureInPicture.requestWindow({width:360,height:500})
+                .then(win => {
+                    pipWindow = win;
                     buildPiPContent(pipWindow, pipWindow.document);
-                    return;
-                } catch(e) {
+                })
+                .catch(e => {
                     console.warn("Document PiP failed:", e.message);
-                }
-            }
-
-            // Fallback: small popup window
-            const w=360,h=500,left=screen.width-w-20,top=screen.height-h-80;
-            pipWindow = window.open("about:blank","mochii_pip",
-                `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no,titlebar=no`);
-            if (!pipWindow) { alert("Popup blocked! Please allow popups for mochiii.vercel.app"); return; }
-            buildPiPContent(pipWindow, pipWindow.document);
+                    // Fallback: small popup window
+                    const w=360,h=500,left=screen.width-w-20,top=screen.height-h-80;
+                    pipWindow = window.open("about:blank","mochii_pip",
+                        `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
+                    if (!pipWindow) { alert("Allow popups for mochiii.vercel.app in your browser settings"); return; }
+                    buildPiPContent(pipWindow, pipWindow.document);
+                });
         }
 
 
