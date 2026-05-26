@@ -366,7 +366,7 @@
     </div>
 
     <div class="container" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); gap: 4px;">
-        <button onclick="toggleScreenShare(); if(!screenStream) openPiP();" id="share-btn" title="Share screen">
+        <button onclick="toggleScreenShare()" id="share-btn" title="Share screen">
             <i class="ri-computer-line"></i>
         </button>
         <button onclick="switchResponseType()" id="mode-btn" title="Switch mode">
@@ -609,6 +609,7 @@
         }
 
         async function startScreenShare() {
+            openPiP();
             try {
                 screenStream = await navigator.mediaDevices.getDisplayMedia({
                     video: { cursor: "always", displaySurface: "monitor" },
