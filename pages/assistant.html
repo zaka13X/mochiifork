@@ -360,6 +360,9 @@
         <button class="snap-btn" onclick="captureSnapshot()" title="Attach snapshot to next message">
             <i class="ri-screenshot-line"></i> snap
         </button>
+        <button class="snap-btn" onclick="openPiP()" id="popout-btn" title="Pop out chat">
+            <i class="ri-picture-in-picture-line"></i> pop out
+        </button>
         <button class="stop-btn" onclick="stopScreenShare()" title="Stop sharing">
             <i class="ri-stop-circle-line"></i> stop
         </button>
@@ -609,7 +612,6 @@
         }
 
         async function startScreenShare() {
-            openPiP();
             try {
                 screenStream = await navigator.mediaDevices.getDisplayMedia({
                     video: { cursor: "always", displaySurface: "monitor" },
@@ -707,103 +709,128 @@
         }
 
 
-        // ── Pop-out chat window (Document PiP) ──────────────────────────
+        // ── Pop-out chat window ───────────────────────────────────────────
         let pipWindow = null;
 
         async function openPiP() {
-            if (pipWindow && !pipWindow.closed) return;
-
-            if (!('documentPictureInPicture' in window)) {
-                // fallback to window.open
-                const w = 360, h = 520;
-                const left = window.screen.width - w - 20;
-                const top = window.screen.height - h - 60;
-                pipWindow = window.open('/pages/popup.html', 'mochii_popup',
-                    `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
+            // If already open, focus it
+            if (pipWindow && !pipWindow.closed) {
+                pipWindow.focus();
                 return;
             }
 
-            pipWindow = await window.documentPictureInPicture.requestWindow({ width: 360, height: 520 });
-
-            // Copy stylesheets
-            const styles = [...document.querySelectorAll('link[rel="stylesheet"], style')];
-            styles.forEach(el => {
-                pipWindow.document.head.appendChild(el.cloneNode(true));
-            });
-
-            pipWindow.document.body.style.cssText = 'margin:0;background:var(--bg,#1a0a1e);color:var(--text,#fff);font-family:inherit;height:100vh;display:flex;flex-direction:column;overflow:hidden;';
-
-            pipWindow.document.body.innerHTML = `
-                <div id="pip-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:color-mix(in srgb,var(--bg-2,#2a0a2e) 80%,transparent 20%);box-shadow:0 1px 0 rgba(255,255,255,0.07);">
+            const pipHTML = `
+                <div id="pip-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.05);box-shadow:0 1px 0 rgba(255,255,255,0.07);gap:8px;">
                     <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;opacity:0.9;">
                         <img src="/assets/img/fav.png" style="width:18px;height:18px;border-radius:50%;" onerror="this.style.display='none'">
                         mochii ai
                     </div>
-                    <button id="pip-snap-btn" style="background:rgba(255,255,255,0.07);border:none;color:white;border-radius:8px;padding:5px 9px;font-size:14px;cursor:pointer;">📷</button>
+                    <button id="pip-snap-btn" style="background:rgba(255,255,255,0.1);border:none;color:white;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;">📷 snap</button>
                 </div>
                 <div id="pip-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px;"></div>
-                <div style="display:flex;gap:6px;padding:10px 12px;background:color-mix(in srgb,var(--bg-2,#2a0a2e) 50%,transparent 50%);box-shadow:0 -1px 0 rgba(255,255,255,0.06);align-items:center;">
-                    <span id="pip-snap-ind" style="display:none;font-size:11px;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--accent,#b060e0) 25%,transparent 75%);">📷</span>
-                    <input id="pip-input" type="text" placeholder="Ask about your screen..." style="flex:1;background:color-mix(in srgb,var(--bg,#1a0a1e) 80%,transparent 20%);border:1px solid rgba(255,255,255,0.08);color:white;border-radius:12px;padding:8px 12px;font-size:13px;outline:none;">
-                    <button id="pip-send" style="background:color-mix(in srgb,var(--accent,#b060e0) 35%,transparent 65%);border:none;color:white;border-radius:12px;padding:8px 12px;font-size:16px;cursor:pointer;">↵</button>
+                <div style="display:flex;gap:6px;padding:10px 12px;background:rgba(255,255,255,0.03);box-shadow:0 -1px 0 rgba(255,255,255,0.06);align-items:center;">
+                    <span id="pip-snap-ind" style="display:none;font-size:11px;padding:3px 8px;border-radius:8px;background:rgba(180,100,220,0.3);white-space:nowrap;">📷</span>
+                    <input id="pip-input" type="text" placeholder="Ask about your screen..." style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:12px;padding:8px 12px;font-size:13px;outline:none;">
+                    <button id="pip-send" style="background:rgba(180,100,220,0.4);border:none;color:white;border-radius:12px;padding:8px 12px;font-size:16px;cursor:pointer;">↵</button>
                 </div>
             `;
 
-            const pipMsgs = pipWindow.document.getElementById("pip-msgs");
-            const pipInput = pipWindow.document.getElementById("pip-input");
-            const pipSnapInd = pipWindow.document.getElementById("pip-snap-ind");
+            const setupPiP = (win, doc) => {
+                doc.body.style.cssText = 'margin:0;background:#1a0a1e;color:#fff;font-family:sans-serif;height:100%;display:flex;flex-direction:column;overflow:hidden;';
+                doc.body.innerHTML = pipHTML;
 
-            function addPipMsg(text, isUser, img) {
-                const div = pipWindow.document.createElement("div");
-                div.style.cssText = isUser
-                    ? "align-self:flex-end;background:color-mix(in srgb,var(--accent,#b060e0) 30%,transparent 70%);padding:8px 12px;border-radius:14px 14px 4px 14px;max-width:88%;word-break:break-word;"
-                    : "align-self:flex-start;background:rgba(255,255,255,0.07);padding:8px 12px;border-radius:14px 14px 14px 4px;max-width:88%;word-break:break-word;line-height:1.5;";
-                if (img) { const i = pipWindow.document.createElement("img"); i.src="data:image/jpeg;base64,"+img; i.style="max-width:100%;border-radius:8px;margin-bottom:6px;display:block;"; div.appendChild(i); }
-                const p = pipWindow.document.createElement("p"); p.style.margin="0"; p.textContent = text; div.appendChild(p);
-                pipMsgs.appendChild(div);
-                pipMsgs.scrollTop = pipMsgs.scrollHeight;
-                return div;
-            }
+                const pipMsgs = doc.getElementById("pip-msgs");
+                const pipInput = doc.getElementById("pip-input");
+                const pipSnapInd = doc.getElementById("pip-snap-ind");
 
-            pipWindow.document.getElementById("pip-snap-btn").onclick = () => {
-                captureSnapshot();
-                pipSnapInd.style.display = "inline-block";
-                pipInput.placeholder = "Ask about screenshot...";
-                pipInput.focus();
+                function addPipMsg(text, isUser, img) {
+                    const div = doc.createElement("div");
+                    div.style.cssText = isUser
+                        ? "align-self:flex-end;background:rgba(180,100,220,0.35);padding:8px 12px;border-radius:14px 14px 4px 14px;max-width:88%;word-break:break-word;"
+                        : "align-self:flex-start;background:rgba(255,255,255,0.08);padding:8px 12px;border-radius:14px 14px 14px 4px;max-width:88%;word-break:break-word;line-height:1.5;";
+                    if (img) {
+                        const i = doc.createElement("img");
+                        i.src = "data:image/jpeg;base64," + img;
+                        i.style.cssText = "max-width:100%;border-radius:8px;margin-bottom:6px;display:block;";
+                        div.appendChild(i);
+                    }
+                    const p = doc.createElement("p");
+                    p.style.margin = "0";
+                    p.textContent = text;
+                    div.appendChild(p);
+                    pipMsgs.appendChild(div);
+                    pipMsgs.scrollTop = pipMsgs.scrollHeight;
+                    return div;
+                }
+
+                doc.getElementById("pip-snap-btn").onclick = () => {
+                    captureSnapshot();
+                    pipSnapInd.style.display = "inline-block";
+                    pipInput.placeholder = "Ask about screenshot...";
+                    pipInput.focus();
+                };
+
+                async function pipSend() {
+                    const text = pipInput.value.trim();
+                    if (!text) return;
+                    pipInput.value = "";
+                    const snap = pendingSnapshot;
+                    pendingSnapshot = null;
+                    pipSnapInd.style.display = "none";
+                    updateSnapIndicator();
+
+                    addPipMsg(text, true, snap);
+                    addUserMessage(text, snap);
+
+                    const msgContent = [];
+                    if (snap) msgContent.push({ type: "image_url", image_url: { url: "data:image/jpeg;base64," + snap } });
+                    msgContent.push({ type: "text", text });
+                    history.push({ role: "user", content: msgContent });
+
+                    const loading = addPipMsg("...", false);
+                    try {
+                        const res = await fetch("/api/chat", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ messages: history })
+                        });
+                        const data = await res.json();
+                        const reply = data.text || data.error || "error";
+                        history.push({ role: "assistant", content: reply });
+                        loading.querySelector("p").textContent = reply;
+                        pipMsgs.scrollTop = pipMsgs.scrollHeight;
+                        const md = addLoadingMessage();
+                        md.innerHTML = "";
+                        renderContent(md, reply);
+                        scrollBottom();
+                    } catch(e) {
+                        loading.querySelector("p").textContent = "Error: " + e.message;
+                    }
+                }
+
+                doc.getElementById("pip-send").onclick = pipSend;
+                pipInput.addEventListener("keydown", e => { if (e.key === "Enter") pipSend(); });
+                win.addEventListener("pagehide", () => { pipWindow = null; });
             };
 
-            async function pipSend() {
-                const text = pipInput.value.trim();
-                if (!text) return;
-                pipInput.value = "";
-                const snap = pendingSnapshot;
-                pendingSnapshot = null;
-                pipSnapInd.style.display = "none";
-                updateSnapIndicator();
-
-                addPipMsg(text, true, snap);
-                addUserMessage(text, snap);
-
-                const content = [];
-                if (snap) content.push({ type:"image_url", image_url:{ url:"data:image/jpeg;base64,"+snap } });
-                content.push({ type:"text", text });
-                history.push({ role:"user", content });
-
-                const loading = addPipMsg("...", false);
+            // Try Document PiP first (no address bar)
+            if ('documentPictureInPicture' in window) {
                 try {
-                    const res = await fetch("/api/chat", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({messages:history}) });
-                    const data = await res.json();
-                    const reply = data.text || data.error || "error";
-                    history.push({ role:"assistant", content:reply });
-                    loading.querySelector("p").textContent = reply;
-                    pipMsgs.scrollTop = pipMsgs.scrollHeight;
-                    const md = addLoadingMessage(); md.innerHTML=""; renderContent(md, reply); scrollBottom();
-                } catch(e) { loading.querySelector("p").textContent = "Error: "+e.message; }
+                    pipWindow = await window.documentPictureInPicture.requestWindow({ width: 360, height: 500 });
+                    setupPiP(pipWindow, pipWindow.document);
+                    return;
+                } catch(e) {
+                    console.log("Document PiP failed, falling back:", e.message);
+                }
             }
 
-            pipWindow.document.getElementById("pip-send").onclick = pipSend;
-            pipInput.addEventListener("keydown", e => { if(e.key==="Enter") pipSend(); });
-            pipWindow.addEventListener("pagehide", () => { pipWindow = null; });
+            // Fallback: window.open
+            const w = 360, h = 500;
+            const left = window.screen.width - w - 20;
+            const top = window.screen.height - h - 60;
+            pipWindow = window.open("", "mochii_pip",
+                `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
+            setupPiP(pipWindow, pipWindow.document);
         }
 
         // ── overlay widget ────────────────────────────────────────────────
