@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mochii | movies</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.3/cdn.min.js" defer></script>
+<script>
+  document.addEventListener('click', function (e) {
+    const anchor = e.target.closest('a');
+    if (!anchor) return;
+    const url = new URL(anchor.href, location.origin);
+    const whitelist = ['mochiii.vercel.app'];
+    if (url.origin !== location.origin && !whitelist.includes(url.hostname)) {
+      e.preventDefault();
+    }
+  });
+</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="preconnect" href="https://fdn.fontcdn.ir">
