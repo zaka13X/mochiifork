@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,464 +22,581 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 </head>
-
 <body>
-    <style>
-        html {
-            background: none;
-            overflow: hidden;
+<style>
+    html { background: none; overflow: hidden; }
+
+    #particles-container { position: fixed; width: 100%; height: 100%; top: 0; left: 0; z-index: -1; opacity: 0.5; }
+
+    .container { display: flex; align-items: center; }
+
+    button {
+        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--bg-2) 30%, transparent 70%);
+        box-shadow: 0 0 0 .5px rgba(255,255,255,0.15), 0 16px 32px rgba(0,0,0,0.12);
+        color: white; padding: 10px 20px; border: none; border-radius: 20px;
+        font-size: 25px; font-weight: bold; cursor: pointer; transition: 0.2s; margin: 2px; position: relative;
+    }
+    button:hover { scale: 1.05; background: var(--bg-3); }
+    button:active { scale: .95; }
+    button.disabled, button:disabled { filter: brightness(0.5); cursor: not-allowed; pointer-events: none; }
+    button.active-btn {
+        background: color-mix(in srgb, var(--accent) 40%, transparent 60%);
+        box-shadow: 0 0 0 1px var(--accent), 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent 60%);
+    }
+
+    input {
+        border-radius: 22px;
+        background: color-mix(in srgb, var(--bg) 75%, transparent 25%);
+        padding: 10px 20px; outline: none; backdrop-filter: blur(10px);
+        width: 480px; color: var(--text); border: none; font-size: 16px;
+    }
+    input::placeholder { color: color-mix(in srgb, var(--text) 50%, transparent 50%); }
+    input:focus { background: color-mix(in srgb, var(--bg-2) 60%, transparent 40%); }
+
+    .messages-container {
+        height: 80vh; bottom: 90px; width: 50%; overflow-y: auto; overflow-x: hidden;
+        left: 50%; transform: translateX(-50%); position: absolute;
+        padding: 10px; display: flex; flex-direction: column; align-items: flex-end;
+    }
+
+    .my-message {
+        background: color-mix(in srgb, var(--bg-2) 75%, transparent 25%);
+        padding: 15px; box-shadow: 0 0 0 2px rgba(255,255,255,0.10), 0 16px 32px rgba(0,0,0,0.12);
+        border-radius: 20px 20px 10px 20px; max-width: 400px; position: relative; margin-bottom: 4px; right: 0;
+    }
+
+    .msg-time {
+        font-size: 10px; opacity: 0.4; margin-top: 4px; text-align: right;
+    }
+
+    .ai-message {
+        background: color-mix(in srgb, var(--bg) 75%, transparent 25%);
+        padding: 15px; box-shadow: 0 0 0 2px rgba(255,255,255,0.05), 0 16px 32px rgba(0,0,0,0.12);
+        border-radius: 20px 20px 20px 10px; margin-bottom: 4px; max-width: 400px;
+        position: relative; left: 0; align-self: flex-start; overflow-wrap: break-word; word-break: break-word;
+    }
+
+    .ai-message pre { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+    .ai-message code { font-family: 'Courier New', monospace; font-size: 0.9em; }
+    .ai-message pre code { background: none; padding: 0; }
+    .ai-message p { margin: 8px 0; }
+
+    .msg-actions {
+        display: flex; gap: 6px; margin-top: 6px; align-self: flex-start;
+        margin-bottom: 14px;
+    }
+
+    .msg-actions button {
+        font-size: 12px; padding: 4px 10px; border-radius: 10px;
+        background: rgba(255,255,255,0.07); box-shadow: none; margin: 0; font-weight: normal;
+    }
+
+    .screenshot-preview { max-width: 100%; border-radius: 12px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.1); }
+
+    svg.loading { width: 1.25em; transform-origin: center; animation: rotate4 1.2s linear infinite; position: absolute; top: 5px; left: 5px; }
+    .loading circle { fill: none; stroke: var(--text); stroke-width: 4; stroke-dasharray: 1,200; stroke-dashoffset: 0; stroke-linecap: round; animation: dash4 1.5s ease-in-out infinite; }
+    @keyframes rotate4 { 100% { transform: rotate(360deg); } }
+    @keyframes dash4 {
+        0% { stroke-dasharray: 1,200; stroke-dashoffset: 0; }
+        50% { stroke-dasharray: 90,200; stroke-dashoffset: -35px; }
+        100% { stroke-dashoffset: -125px; }
+    }
+
+    #screen-preview-bar {
+        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+        background: color-mix(in srgb, var(--bg-2) 80%, transparent 20%);
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.3);
+        border-radius: 16px; padding: 10px 16px; display: none;
+        align-items: center; gap: 12px; z-index: 100; font-size: 14px; color: var(--text);
+    }
+    #screen-preview-bar img { height: 50px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); }
+    #screen-preview-bar .stop-btn { font-size: 14px; padding: 6px 12px; border-radius: 10px; background: rgba(255,80,80,0.25); color: #ff6b6b; }
+    #screen-preview-bar .snap-btn { font-size: 14px; padding: 6px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 30%, transparent 70%); }
+
+    /* history sidebar */
+    #history-sidebar {
+        position: fixed; left: 0; top: 0; height: 100vh; width: 260px;
+        background: color-mix(in srgb, var(--bg-2) 95%, transparent 5%);
+        box-shadow: 2px 0 20px rgba(0,0,0,0.3); z-index: 200;
+        display: flex; flex-direction: column; transform: translateX(-100%);
+        transition: transform 0.25s ease; padding: 16px;
+    }
+    #history-sidebar.open { transform: translateX(0); }
+    #history-sidebar h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; opacity: 0.8; }
+    .history-item {
+        padding: 10px 12px; border-radius: 12px; cursor: pointer; font-size: 13px;
+        background: rgba(255,255,255,0.05); margin-bottom: 6px; transition: 0.15s;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-item:hover { background: rgba(255,255,255,0.1); }
+    .history-item .hist-time { font-size: 10px; opacity: 0.4; margin-top: 2px; }
+    #new-chat-btn { margin-top: auto; font-size: 14px; padding: 8px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 30%, transparent 70%); font-weight: normal; box-shadow: none; }
+
+    /* mood selector */
+    #mood-bar {
+        position: fixed; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 100;
+    }
+    #mood-bar button {
+        font-size: 12px; padding: 5px 12px; border-radius: 12px;
+        background: rgba(255,255,255,0.07); box-shadow: none; margin: 0; font-weight: normal;
+    }
+    #mood-bar button.active-btn { font-weight: 600; }
+
+    /* token counter */
+    #token-counter {
+        position: absolute; right: 120px; bottom: 28px;
+        font-size: 11px; opacity: 0.4; pointer-events: none;
+    }
+
+    /* history toggle btn */
+    #history-toggle {
+        position: fixed; left: 12px; top: 12px; font-size: 18px; padding: 8px 12px;
+        border-radius: 12px; z-index: 201;
+    }
+
+    ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2000px; }
+    ::-webkit-scrollbar { background: var(--bg); width: 6px; border-radius: 3842px; }
+</style>
+
+<br><br><br><br>
+
+<!-- history sidebar -->
+<div id="history-sidebar">
+    <h3>💬 chat history</h3>
+    <div id="history-list"></div>
+    <button id="new-chat-btn" onclick="newChat()"><i class="ri-add-line"></i> new chat</button>
+</div>
+
+<button id="history-toggle" onclick="toggleSidebar()" title="Chat history"><i class="ri-history-line"></i></button>
+
+<!-- mood bar -->
+<div id="mood-bar">
+    <button onclick="setMood('casual')" id="mood-casual" class="active-btn">casual</button>
+    <button onclick="setMood('professional')" id="mood-professional">professional</button>
+    <button onclick="setMood('concise')" id="mood-concise">concise</button>
+</div>
+
+<!-- screen preview bar -->
+<div id="screen-preview-bar">
+    <img id="screen-thumb" src="" alt="screen">
+    <span>screen shared</span>
+    <button class="snap-btn" onclick="captureSnapshot()" title="Attach snapshot to next message"><i class="ri-screenshot-line"></i> snap</button>
+    <button class="snap-btn" id="autosnap-btn" onclick="toggleAutoSnap()" title="Auto-snap"><i class="ri-timer-line"></i> auto</button>
+    <button class="stop-btn" onclick="stopScreenShare()" title="Stop sharing"><i class="ri-stop-circle-line"></i> stop</button>
+</div>
+
+<div class="container" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); gap: 4px;">
+    <button onclick="toggleScreenShare()" id="share-btn" title="Share screen"><i class="ri-computer-line"></i></button>
+    <button onclick="switchResponseType()" id="mode-btn" title="Switch mode"><i class="ri-image-ai-line"></i></button>
+    <input type="text" id="chat-input" placeholder="Ask mochii AI...">
+    <span id="token-counter">0</span>
+    <button onclick="sendMessage()" id="send-btn"><i class="ri-corner-down-left-line"></i></button>
+</div>
+
+<div class="messages-container" id="messages"></div>
+
+<canvas id="snap-canvas" style="display:none;"></canvas>
+<video id="screen-video" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;" autoplay muted playsinline></video>
+
+<script>
+    particlesJS.load('particles-container', '/assets/json/config/particles.json', function(){});
+</script>
+<script>
+    marked.setOptions({
+        gfm: true, breaks: true, langPrefix: 'language-',
+        highlight: function(code, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                try { return hljs.highlight(code, { language: lang }).value; } catch(e) {}
+            }
+            return code;
         }
+    });
+</script>
+<script src="/assets/js/vm.js" defer></script>
+<div id="cursor-thank-you-zxs" style="position:fixed;top:0;left:0;width:16px;height:16px;border-radius:50%;background:color-mix(in srgb,var(--accent) 70%,white 30%);pointer-events:none;z-index:9999;transform:translate(748px,592px);transition:width 0.15s,height 0.15s,opacity 0.15s;mix-blend-mode:difference;opacity:0;"></div>
+<script src="/assets/js/cursor.js"></script>
 
-        #particles-container {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            opacity: 0.5;
+<script>
+    const input = document.getElementById("chat-input");
+    const messagesContainer = document.getElementById("messages");
+    const tokenCounter = document.getElementById("token-counter");
+
+    const placeholders = ["Ask mochii AI...", "What's 2 + 2?", "How do I make a steak?", "What can you do?", "Explain this code...", "What's on my screen?"];
+    input.placeholder = placeholders[Math.floor(Math.random() * placeholders.length)];
+
+    // ── state ─────────────────────────────────────────────────────────────
+    let history = [];
+    let responseType = "text";
+    let pendingSnapshot = null;
+    let screenStream = null;
+    let thumbInterval = null;
+    let autoSnapOn = false;
+    let autoSnapInterval = null;
+    let mood = "casual";
+    let currentChatId = Date.now().toString();
+    let snapOnSend = true;
+    let lastUserText = "";
+    let lastUserSnap = null;
+
+    // ── mood ──────────────────────────────────────────────────────────────
+    const moodPrompts = {
+        casual: "You are mochii ai, a friendly and casual AI assistant built into the mochii platform. Be warm, helpful, and conversational. Use simple language.",
+        professional: "You are mochii ai, a professional AI assistant built into the mochii platform. Be precise, clear, and thorough in your responses.",
+        concise: "You are mochii ai, an AI assistant built into the mochii platform. Be extremely concise. Give short, direct answers. No fluff."
+    };
+
+    function setMood(m) {
+        mood = m;
+        document.querySelectorAll("#mood-bar button").forEach(b => b.classList.remove("active-btn"));
+        document.getElementById("mood-" + m).classList.add("active-btn");
+        localStorage.setItem("mochii_mood", m);
+    }
+
+    function getSystemMessage() {
+        return { role: "system", content: moodPrompts[mood] };
+    }
+
+    // ── token counter ─────────────────────────────────────────────────────
+    input.addEventListener("input", () => {
+        const len = input.value.length;
+        tokenCounter.textContent = len > 0 ? len + " chars" : "";
+        tokenCounter.style.opacity = len > 3000 ? "0.8" : "0.4";
+        tokenCounter.style.color = len > 3000 ? "#ff6b6b" : "";
+    });
+
+    // ── render ────────────────────────────────────────────────────────────
+    function renderContent(container, markdown) {
+        let processed = markdown
+            .replace(/\\\[/g, '$$').replace(/\\\]/g, '$$')
+            .replace(/\\\(/g, '$').replace(/\\\)/g, '$');
+        container.innerHTML = marked.parse(processed);
+        container.querySelectorAll("pre code").forEach(b => hljs.highlightElement(b));
+        renderMathInElement(container, {
+            delimiters: [{ left:"$$",right:"$$",display:true },{ left:"$",right:"$",display:false }],
+            throwOnError: false
+        });
+    }
+
+    function scrollBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
+
+    function formatTime() {
+        return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function addUserMessage(text, imgBase64) {
+        const div = document.createElement("div");
+        div.classList.add("my-message");
+        if (imgBase64) {
+            const img = document.createElement("img");
+            img.src = "data:image/jpeg;base64," + imgBase64;
+            img.classList.add("screenshot-preview");
+            div.appendChild(img);
         }
+        const p = document.createElement("p");
+        p.style.margin = "4px 0 0 0";
+        p.textContent = text;
+        div.appendChild(p);
+        const t = document.createElement("div");
+        t.className = "msg-time"; t.textContent = formatTime();
+        div.appendChild(t);
+        messagesContainer.appendChild(div);
+        scrollBottom();
+    }
 
-        .container {
-            display: flex;
-            align-items: center;
+    function addLoadingMessage() {
+        const div = document.createElement("div");
+        div.classList.add("ai-message");
+        div.innerHTML = `<svg viewBox="25 25 50 50" class="loading"><circle r="20" cy="50" cx="50"></circle></svg>`;
+        messagesContainer.appendChild(div);
+        scrollBottom();
+        return div;
+    }
+
+    function addAIMessage(text, loadingDiv) {
+        if (loadingDiv) { loadingDiv.innerHTML = ""; renderContent(loadingDiv, text); }
+        const t = document.createElement("div");
+        t.className = "msg-time"; t.textContent = formatTime();
+        loadingDiv.appendChild(t);
+
+        // action buttons
+        const actions = document.createElement("div");
+        actions.className = "msg-actions";
+        actions.innerHTML = `
+            <button onclick="copyMsg(this)" title="Copy"><i class="ri-clipboard-line"></i> copy</button>
+            <button onclick="regenMsg()" title="Regenerate"><i class="ri-refresh-line"></i> regen</button>
+        `;
+        // insert actions after the ai message
+        loadingDiv.insertAdjacentElement("afterend", actions);
+        scrollBottom();
+    }
+
+    function copyMsg(btn) {
+        const msg = btn.closest(".msg-actions").previousElementSibling;
+        navigator.clipboard.writeText(msg.innerText);
+        btn.innerHTML = '<i class="ri-check-line"></i> copied';
+        setTimeout(() => btn.innerHTML = '<i class="ri-clipboard-line"></i> copy', 2000);
+    }
+
+    async function regenMsg() {
+        if (!lastUserText) return;
+        // remove last ai message + actions
+        const msgs = messagesContainer.querySelectorAll(".ai-message, .msg-actions");
+        if (msgs.length >= 2) {
+            msgs[msgs.length - 1].remove();
+            msgs[msgs.length - 2].remove();
         }
+        // remove last entry from history
+        if (history.length > 0 && history[history.length-1].role === "assistant") history.pop();
+        if (history.length > 0 && history[history.length-1].role === "user") history.pop();
+        await askAI(lastUserText, lastUserSnap);
+    }
 
-        button {
-            backdrop-filter: blur(10px);
-            background: color-mix(in srgb, var(--bg-2) 30%, transparent 70%);
-            box-shadow: 0 0 0 .5px rgba(255, 255, 255, 0.15), 0 16px 32px rgba(0, 0, 0, 0.12);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 20px;
-            font-size: 25px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-            margin: 2px;
-            position: relative;
+    // ── AI call ───────────────────────────────────────────────────────────
+    async function askAI(userText, imgBase64) {
+        lastUserText = userText;
+        lastUserSnap = imgBase64;
+
+        const content = [];
+        if (imgBase64) content.push({ type:"image_url", image_url:{ url:"data:image/jpeg;base64,"+imgBase64 } });
+        content.push({ type:"text", text:userText });
+        history.push({ role:"user", content });
+
+        const loadingDiv = addLoadingMessage();
+
+        const messagesWithSystem = [getSystemMessage(), ...history];
+
+        try {
+            const res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages: messagesWithSystem })
+            });
+            const data = await res.json();
+            if (!res.ok || data.error) {
+                loadingDiv.textContent = "Error: " + (data.error || "something went wrong");
+                return;
+            }
+            const reply = data.text;
+            history.push({ role:"assistant", content:reply });
+            addAIMessage(reply, loadingDiv);
+            saveChat();
+        } catch(err) {
+            loadingDiv.textContent = "Error: " + err.message;
         }
+    }
 
-        button:hover {
-            scale: 1.05;
-            background: var(--bg-3);
+    // ── image gen ─────────────────────────────────────────────────────────
+    async function generateImage(prompt) {
+        const loadingDiv = addLoadingMessage();
+        const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt);
+        const img = document.createElement("img");
+        img.src = url; img.alt = prompt;
+        img.style.maxWidth = "100%"; img.style.borderRadius = "25px";
+        img.onload = () => { loadingDiv.innerHTML = ""; loadingDiv.appendChild(img); scrollBottom(); };
+        img.onerror = () => { loadingDiv.textContent = "Error generating image."; };
+    }
+
+    // ── send ──────────────────────────────────────────────────────────────
+    async function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        tokenCounter.textContent = "";
+
+        if (responseType === "image") { addUserMessage(text); generateImage(text); return; }
+
+        // snap on send
+        if (snapOnSend && screenStream && !pendingSnapshot) captureSnapshot();
+        await new Promise(r => setTimeout(r, 50)); // tiny delay for snapshot to register
+
+        const snap = pendingSnapshot;
+        pendingSnapshot = null;
+        updateSnapIndicator();
+
+        addUserMessage(text, snap);
+        await askAI(text, snap);
+    }
+
+    input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+    // ── mode toggle ───────────────────────────────────────────────────────
+    function switchResponseType() {
+        const btn = document.getElementById("mode-btn");
+        const icon = btn.querySelector("i");
+        if (responseType === "text") {
+            responseType = "image"; icon.className = "ri-ai-generate-text";
+            input.placeholder = "Describe your image..."; btn.classList.add("active-btn");
+        } else {
+            responseType = "text"; icon.className = "ri-image-ai-line";
+            input.placeholder = "Ask mochii AI..."; btn.classList.remove("active-btn");
         }
+    }
 
-        button:active {
-            scale: .95;
+    // ── screenshare ───────────────────────────────────────────────────────
+    const shareBtn = document.getElementById("share-btn");
+    const previewBar = document.getElementById("screen-preview-bar");
+    const screenVideo = document.getElementById("screen-video");
+    const snapCanvas = document.getElementById("snap-canvas");
+    const screenThumb = document.getElementById("screen-thumb");
+
+    async function toggleScreenShare() {
+        if (screenStream) { stopScreenShare(); } else { await startScreenShare(); }
+    }
+
+    async function startScreenShare() {
+        try {
+            screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: { cursor:"always", displaySurface:"monitor" }, audio: false
+            });
+            screenVideo.srcObject = screenStream;
+            screenStream.getVideoTracks()[0].addEventListener("ended", stopScreenShare);
+            shareBtn.classList.add("active-btn");
+            previewBar.style.display = "flex";
+            await new Promise(resolve => {
+                if (screenVideo.readyState >= 2) { resolve(); return; }
+                screenVideo.addEventListener("canplay", resolve, { once: true });
+            });
+            thumbInterval = setInterval(updateThumb, 2000);
+            updateThumb();
+        } catch(err) { console.log("Screen share cancelled:", err.message); }
+    }
+
+    function stopScreenShare() {
+        if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+        clearInterval(thumbInterval);
+        if (autoSnapOn) toggleAutoSnap();
+        screenVideo.srcObject = null;
+        shareBtn.classList.remove("active-btn");
+        previewBar.style.display = "none";
+        pendingSnapshot = null;
+        updateSnapIndicator();
+    }
+
+    function toggleAutoSnap() {
+        const btn = document.getElementById("autosnap-btn");
+        autoSnapOn = !autoSnapOn;
+        if (autoSnapOn) {
+            btn.classList.add("active-btn");
+            autoSnapInterval = setInterval(() => { if (screenStream) captureSnapshot(); }, 3000);
+        } else {
+            btn.classList.remove("active-btn");
+            clearInterval(autoSnapInterval);
         }
+    }
 
-        button.disabled, button:disabled {
-            filter: brightness(0.5);
-            cursor: not-allowed;
-            pointer-events: none;
+    function drawFrame(canvas, width, height) {
+        canvas.width = width || screenVideo.videoWidth;
+        canvas.height = height || screenVideo.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+    }
+
+    function updateThumb() {
+        if (!screenStream || !screenVideo.videoWidth) return;
+        drawFrame(snapCanvas);
+        screenThumb.src = snapCanvas.toDataURL("image/jpeg", 0.4);
+    }
+
+    function captureSnapshot() {
+        if (!screenStream) return;
+        const maxW = 1280;
+        const scale = Math.min(1, maxW / screenVideo.videoWidth);
+        const w = Math.round(screenVideo.videoWidth * scale);
+        const h = Math.round(screenVideo.videoHeight * scale);
+        drawFrame(snapCanvas, w, h);
+        const pixel = snapCanvas.getContext("2d").getImageData(0,0,1,1).data;
+        const doCapture = () => {
+            pendingSnapshot = snapCanvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+            updateSnapIndicator();
+        };
+        if (pixel[0]===0 && pixel[1]===0 && pixel[2]===0) {
+            setTimeout(() => { drawFrame(snapCanvas,w,h); doCapture(); }, 300);
+        } else { doCapture(); }
+        input.focus();
+        input.placeholder = "Ask about your screenshot...";
+    }
+
+    function updateSnapIndicator() {
+        const sendBtn = document.getElementById("send-btn");
+        if (pendingSnapshot) {
+            sendBtn.classList.add("active-btn"); sendBtn.title = "Send with screenshot";
+        } else {
+            sendBtn.classList.remove("active-btn"); sendBtn.title = "Send";
+            if (responseType === "text") input.placeholder = "Ask mochii AI...";
         }
+    }
 
-        button.active-btn {
-            background: color-mix(in srgb, var(--accent) 40%, transparent 60%);
-            box-shadow: 0 0 0 1px var(--accent), 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent 60%);
-        }
+    // ── chat history ──────────────────────────────────────────────────────
+    function saveChat() {
+        if (history.length === 0) return;
+        const chats = JSON.parse(localStorage.getItem("mochii_chats") || "{}");
+        const firstMsg = history.find(m => m.role === "user");
+        const preview = firstMsg
+            ? (Array.isArray(firstMsg.content) ? firstMsg.content.find(c=>c.type==="text")?.text : firstMsg.content) || "chat"
+            : "chat";
+        chats[currentChatId] = { id: currentChatId, preview: preview.slice(0,40), time: Date.now(), history };
+        localStorage.setItem("mochii_chats", JSON.stringify(chats));
+        renderHistoryList();
+    }
 
-        input {
-            border-radius: 22px;
-            background: color-mix(in srgb, var(--bg) 75%, transparent 25%);
-            padding: 10px 20px;
-            outline: none;
-            backdrop-filter: blur(10px);
-            width: 480px;
-            color: var(--text);
-            border: none;
-            font-size: 16px;
-        }
+    function renderHistoryList() {
+        const chats = JSON.parse(localStorage.getItem("mochii_chats") || "{}");
+        const list = document.getElementById("history-list");
+        list.innerHTML = "";
+        Object.values(chats).sort((a,b) => b.time - a.time).forEach(chat => {
+            const item = document.createElement("div");
+            item.className = "history-item";
+            item.innerHTML = `<div>${chat.preview}</div><div class="hist-time">${new Date(chat.time).toLocaleDateString()}</div>`;
+            item.onclick = () => loadChat(chat.id);
+            list.appendChild(item);
+        });
+    }
 
-        input::placeholder {
-            color: color-mix(in srgb, var(--text) 50%, transparent 50%);
-        }
-
-        input:focus {
-            background: color-mix(in srgb, var(--bg-2) 60%, transparent 40%);
-        }
-
-        .messages-container {
-            height: 80vh;
-            bottom: 90px;
-            width: 50%;
-            overflow-y: auto;
-            overflow-x: hidden;
-            left: 50%;
-            transform: translateX(-50%);
-            position: absolute;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-        }
-
-        .my-message {
-            background: color-mix(in srgb, var(--bg-2) 75%, transparent 25%);
-            padding: 15px;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.10), 0 16px 32px rgba(0, 0, 0, 0.12);
-            border-radius: 20px 20px 10px 20px;
-            max-width: 400px;
-            position: relative;
-            margin-bottom: 20px;
-            right: 0;
-        }
-
-        .ai-message {
-            background: color-mix(in srgb, var(--bg) 75%, transparent 25%);
-            padding: 15px;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05), 0 16px 32px rgba(0, 0, 0, 0.12);
-            border-radius: 20px 20px 20px 10px;
-            margin-bottom: 20px;
-            max-width: 400px;
-            position: relative;
-            left: 0;
-            align-self: flex-start;
-            overflow-wrap: break-word;
-            word-break: break-word;
-        }
-
-        .ai-message pre {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 8px 0;
-        }
-
-        .ai-message code { font-family: 'Courier New', monospace; font-size: 0.9em; }
-        .ai-message pre code { background: none; padding: 0; }
-        .ai-message p { margin: 8px 0; }
-
-        .screenshot-preview {
-            max-width: 100%;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        svg.loading {
-            width: 1.25em;
-            transform-origin: center;
-            animation: rotate4 1.2s linear infinite;
-            position: absolute;
-            top: 5px;
-            left: 5px;
-        }
-
-        .loading circle {
-            fill: none;
-            stroke: var(--text);
-            stroke-width: 4;
-            stroke-dasharray: 1, 200;
-            stroke-dashoffset: 0;
-            stroke-linecap: round;
-            animation: dash4 1.5s ease-in-out infinite;
-        }
-
-        @keyframes rotate4 { 100% { transform: rotate(360deg); } }
-
-        @keyframes dash4 {
-            0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; }
-            50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35px; }
-            100% { stroke-dashoffset: -125px; }
-        }
-
-        #screen-preview-bar {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: color-mix(in srgb, var(--bg-2) 80%, transparent 20%);
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.3);
-            border-radius: 16px;
-            padding: 10px 16px;
-            display: none;
-            align-items: center;
-            gap: 12px;
-            z-index: 100;
-            font-size: 14px;
-            color: var(--text);
-        }
-
-        #screen-preview-bar img {
-            height: 50px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.15);
-        }
-
-        #screen-preview-bar .stop-btn {
-            font-size: 14px;
-            padding: 6px 12px;
-            border-radius: 10px;
-            background: rgba(255, 80, 80, 0.25);
-            color: #ff6b6b;
-        }
-
-        #screen-preview-bar .snap-btn {
-            font-size: 14px;
-            padding: 6px 12px;
-            border-radius: 10px;
-            background: color-mix(in srgb, var(--accent) 30%, transparent 70%);
-        }
-
-        ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2000px; }
-        ::-webkit-scrollbar { background: var(--bg); width: 6px; border-radius: 3842px; }
-    </style>
-
-    <br><br><br><br>
-
-    <div id="screen-preview-bar">
-        <img id="screen-thumb" src="" alt="screen">
-        <span>screen shared</span>
-        <button class="snap-btn" onclick="captureSnapshot()" title="Attach snapshot to next message">
-            <i class="ri-screenshot-line"></i> snap
-        </button>
-        <button class="stop-btn" onclick="stopScreenShare()" title="Stop sharing">
-            <i class="ri-stop-circle-line"></i> stop
-        </button>
-    </div>
-
-    <div class="container" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); gap: 4px;">
-        <button onclick="toggleScreenShare()" id="share-btn" title="Share screen">
-            <i class="ri-computer-line"></i>
-        </button>
-        <button onclick="switchResponseType()" id="mode-btn" title="Switch mode">
-            <i class="ri-image-ai-line"></i>
-        </button>
-        <input type="text" id="chat-input" placeholder="Ask mochii AI...">
-        <button onclick="sendMessage()" id="send-btn">
-            <i class="ri-corner-down-left-line"></i>
-        </button>
-    </div>
-
-    <div class="messages-container" id="messages"></div>
-
-    <canvas id="snap-canvas" style="display:none;"></canvas>
-    <video id="screen-video" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;" autoplay muted playsinline></video>
-
-    <script>
-        particlesJS.load('particles-container', '/assets/json/config/particles.json', function () {});
-    </script>
-    <script>
-        marked.setOptions({
-            gfm: true,
-            breaks: true,
-            langPrefix: 'language-',
-            highlight: function (code, lang) {
-                if (lang && hljs.getLanguage(lang)) {
-                    try { return hljs.highlight(code, { language: lang }).value; } catch (err) { }
-                }
-                return code;
+    function loadChat(id) {
+        const chats = JSON.parse(localStorage.getItem("mochii_chats") || "{}");
+        const chat = chats[id];
+        if (!chat) return;
+        currentChatId = id;
+        history = chat.history;
+        messagesContainer.innerHTML = "";
+        history.forEach(msg => {
+            if (msg.role === "user") {
+                const text = Array.isArray(msg.content) ? msg.content.find(c=>c.type==="text")?.text || "" : msg.content;
+                const img = Array.isArray(msg.content) ? msg.content.find(c=>c.type==="image_url")?.image_url?.url?.split(",")[1] : null;
+                addUserMessage(text, img);
+            } else if (msg.role === "assistant") {
+                const div = document.createElement("div");
+                div.classList.add("ai-message");
+                messagesContainer.appendChild(div);
+                renderContent(div, typeof msg.content === "string" ? msg.content : "");
+                const t = document.createElement("div"); t.className="msg-time"; t.textContent=formatTime(); div.appendChild(t);
+                const actions = document.createElement("div"); actions.className="msg-actions";
+                actions.innerHTML=`<button onclick="copyMsg(this)"><i class="ri-clipboard-line"></i> copy</button><button onclick="regenMsg()"><i class="ri-refresh-line"></i> regen</button>`;
+                div.insertAdjacentElement("afterend", actions);
             }
         });
-    </script>
-    <script src="/assets/js/vm.js" defer></script>
-    <div id="cursor-thank-you-zxs" style="position: fixed; top: 0px; left: 0px; width: 16px; height: 16px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 70%, white 30%); pointer-events: none; z-index: 9999; transform: translate(748px, 592px); transition: width 0.15s, height 0.15s, opacity 0.15s; mix-blend-mode: difference; opacity: 0;"></div>
-    <script src="/assets/js/cursor.js"></script>
+        scrollBottom();
+        toggleSidebar();
+    }
 
-    <script>
-        const input = document.getElementById("chat-input");
-        const messagesContainer = document.getElementById("messages");
-        const placeholders = [
-            "Ask mochii AI...", "What's 2 + 2?", "How do I make a steak?",
-            "What can you do?", "Explain this code...", "What's on my screen?",
-        ];
-        input.placeholder = placeholders[Math.floor(Math.random() * placeholders.length)];
+    function newChat() {
+        saveChat();
+        currentChatId = Date.now().toString();
+        history = [];
+        messagesContainer.innerHTML = "";
+        toggleSidebar();
+    }
 
-        let history = [];
-        let responseType = "text";
-        let pendingSnapshot = null;
-        let screenStream = null;
-        let thumbInterval = null;
+    function toggleSidebar() {
+        document.getElementById("history-sidebar").classList.toggle("open");
+    }
 
-        function renderContent(container, markdown) {
-            let processed = markdown
-                .replace(/\\\[/g, '$$').replace(/\\\]/g, '$$')
-                .replace(/\\\(/g, '$').replace(/\\\)/g, '$');
-            container.innerHTML = marked.parse(processed);
-            container.querySelectorAll("pre code").forEach(b => hljs.highlightElement(b));
-            renderMathInElement(container, {
-                delimiters: [
-                    { left: "$$", right: "$$", display: true },
-                    { left: "$", right: "$", display: false },
-                ],
-                throwOnError: false
-            });
-        }
-
-        function scrollBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
-
-        function addUserMessage(text, imgBase64) {
-            const div = document.createElement("div");
-            div.classList.add("my-message");
-            if (imgBase64) {
-                const img = document.createElement("img");
-                img.src = "data:image/jpeg;base64," + imgBase64;
-                img.classList.add("screenshot-preview");
-                div.appendChild(img);
-            }
-            const p = document.createElement("p");
-            p.style.margin = "4px 0 0 0";
-            p.textContent = text;
-            div.appendChild(p);
-            messagesContainer.appendChild(div);
-            scrollBottom();
-        }
-
-        function addLoadingMessage() {
-            const div = document.createElement("div");
-            div.classList.add("ai-message");
-            div.innerHTML = `<svg viewBox="25 25 50 50" class="loading"><circle r="20" cy="50" cx="50"></circle></svg>`;
-            messagesContainer.appendChild(div);
-            scrollBottom();
-            return div;
-        }
-
-        async function askGemini(userText, imgBase64) {
-            const content = [];
-            if (imgBase64) content.push({ type: "image_url", image_url: { url: "data:image/jpeg;base64," + imgBase64 } });
-            content.push({ type: "text", text: userText });
-            history.push({ role: "user", content });
-            const loadingDiv = addLoadingMessage();
-            try {
-                const res = await fetch("/api/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: history })
-                });
-                const data = await res.json();
-                if (!res.ok || data.error) { loadingDiv.textContent = "Error: " + (data.error || "something went wrong"); return; }
-                const reply = data.text;
-                history.push({ role: "assistant", content: reply });
-                loadingDiv.innerHTML = "";
-                renderContent(loadingDiv, reply);
-                scrollBottom();
-            } catch (err) { loadingDiv.textContent = "Error: " + err.message; }
-        }
-
-        async function generateImage(prompt) {
-            const loadingDiv = addLoadingMessage();
-            const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt);
-            const img = document.createElement("img");
-            img.src = url; img.alt = prompt;
-            img.style.maxWidth = "100%"; img.style.borderRadius = "25px";
-            img.onload = () => { loadingDiv.innerHTML = ""; loadingDiv.appendChild(img); scrollBottom(); };
-            img.onerror = () => { loadingDiv.textContent = "Error generating image."; };
-        }
-
-        async function sendMessage() {
-            const text = input.value.trim();
-            if (!text) return;
-            input.value = "";
-            if (responseType === "image") { addUserMessage(text); generateImage(text); return; }
-            const snap = pendingSnapshot;
-            pendingSnapshot = null;
-            updateSnapIndicator();
-            addUserMessage(text, snap);
-            await askGemini(text, snap);
-        }
-
-        input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
-
-        function switchResponseType() {
-            const btn = document.getElementById("mode-btn");
-            const icon = btn.querySelector("i");
-            if (responseType === "text") {
-                responseType = "image"; icon.className = "ri-ai-generate-text";
-                input.placeholder = "Describe your image..."; btn.classList.add("active-btn");
-            } else {
-                responseType = "text"; icon.className = "ri-image-ai-line";
-                input.placeholder = "Ask mochii AI..."; btn.classList.remove("active-btn");
-            }
-        }
-
-        const shareBtn = document.getElementById("share-btn");
-        const previewBar = document.getElementById("screen-preview-bar");
-        const screenVideo = document.getElementById("screen-video");
-        const snapCanvas = document.getElementById("snap-canvas");
-        const screenThumb = document.getElementById("screen-thumb");
-
-        async function toggleScreenShare() {
-            if (screenStream) { stopScreenShare(); } else { await startScreenShare(); }
-        }
-
-        async function startScreenShare() {
-            try {
-                screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { cursor: "always", displaySurface: "monitor" }, audio: false
-                });
-                screenVideo.srcObject = screenStream;
-                screenStream.getVideoTracks()[0].addEventListener("ended", stopScreenShare);
-                shareBtn.classList.add("active-btn");
-                previewBar.style.display = "flex";
-                await new Promise(resolve => {
-                    if (screenVideo.readyState >= 2) { resolve(); return; }
-                    screenVideo.addEventListener("canplay", resolve, { once: true });
-                });
-                thumbInterval = setInterval(updateThumb, 2000);
-                updateThumb();
-            } catch (err) { console.log("Screen share cancelled or denied:", err.message); }
-        }
-
-        function stopScreenShare() {
-            if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
-            clearInterval(thumbInterval);
-            screenVideo.srcObject = null;
-            shareBtn.classList.remove("active-btn");
-            previewBar.style.display = "none";
-            pendingSnapshot = null;
-            updateSnapIndicator();
-        }
-
-        function drawFrame(canvas, width, height) {
-            canvas.width = width || screenVideo.videoWidth;
-            canvas.height = height || screenVideo.videoHeight;
-            const ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
-        }
-
-        function updateThumb() {
-            if (!screenStream || !screenVideo.videoWidth) return;
-            drawFrame(snapCanvas);
-            screenThumb.src = snapCanvas.toDataURL("image/jpeg", 0.4);
-        }
-
-        function captureSnapshot() {
-            if (!screenStream) return;
-            const maxW = 1280;
-            const scale = Math.min(1, maxW / screenVideo.videoWidth);
-            const w = Math.round(screenVideo.videoWidth * scale);
-            const h = Math.round(screenVideo.videoHeight * scale);
-            drawFrame(snapCanvas, w, h);
-            const testCtx = snapCanvas.getContext("2d");
-            const pixel = testCtx.getImageData(0, 0, 1, 1).data;
-            if (pixel[0] === 0 && pixel[1] === 0 && pixel[2] === 0) {
-                setTimeout(() => {
-                    drawFrame(snapCanvas, w, h);
-                    pendingSnapshot = snapCanvas.toDataURL("image/jpeg", 0.85).split(",")[1];
-                    updateSnapIndicator();
-                }, 300);
-            } else {
-                pendingSnapshot = snapCanvas.toDataURL("image/jpeg", 0.85).split(",")[1];
-                updateSnapIndicator();
-            }
-            input.focus();
-            input.placeholder = "Ask about your screenshot...";
-        }
-
-        function updateSnapIndicator() {
-            const sendBtn = document.getElementById("send-btn");
-            if (pendingSnapshot) {
-                sendBtn.classList.add("active-btn"); sendBtn.title = "Send with screenshot";
-            } else {
-                sendBtn.classList.remove("active-btn"); sendBtn.title = "Send";
-                if (responseType === "text") input.placeholder = "Ask mochii AI...";
-            }
-        }
-    </script>
+    // ── init ──────────────────────────────────────────────────────────────
+    const savedMood = localStorage.getItem("mochii_mood") || "casual";
+    setMood(savedMood);
+    renderHistoryList();
+</script>
 </body>
 </html>
