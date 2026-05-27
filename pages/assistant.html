@@ -114,25 +114,50 @@
     #screen-preview-bar .stop-btn { font-size: 14px; padding: 6px 12px; border-radius: 10px; background: rgba(255,80,80,0.25); color: #ff6b6b; }
     #screen-preview-bar .snap-btn { font-size: 14px; padding: 6px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 30%, transparent 70%); }
 
-    /* history sidebar */
-    #history-sidebar {
-        position: fixed; left: 0; top: 0; height: calc(100vh - 50px); width: 260px;
-        background: color-mix(in srgb, var(--bg-2) 95%, transparent 5%);
-        box-shadow: 2px 0 20px rgba(0,0,0,0.3); z-index: 200;
-        display: flex; flex-direction: column; transform: translateX(-100%);
-        transition: transform 0.25s ease; padding: 16px; overflow-y: auto;
+    /* history modal */
+    #history-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+        z-index: 200; align-items: center; justify-content: center;
     }
-    #history-sidebar.open { transform: translateX(0); }
-    #history-sidebar.open ~ * .messages-container { left: calc(50% + 130px); }
-    #history-sidebar h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; opacity: 0.8; }
+    #history-overlay.open { display: flex; }
+    #history-modal {
+        background: color-mix(in srgb, var(--bg-2) 97%, transparent 3%);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 20px; width: min(420px, 90vw); max-height: 70vh;
+        display: flex; flex-direction: column;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+        overflow: hidden;
+    }
+    #history-modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.07);
+        font-size: 14px; font-weight: 600;
+    }
+    #history-modal-header button {
+        font-size: 16px; padding: 4px 8px; border-radius: 8px;
+        background: rgba(255,255,255,0.07); box-shadow: none; margin: 0;
+    }
+    #history-list {
+        flex: 1; overflow-y: auto; padding: 12px;
+    }
     .history-item {
-        padding: 10px 12px; border-radius: 12px; cursor: pointer; font-size: 13px;
-        background: rgba(255,255,255,0.05); margin-bottom: 6px; transition: 0.15s;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        padding: 12px 14px; border-radius: 12px; cursor: pointer; font-size: 13px;
+        background: rgba(255,255,255,0.04); margin-bottom: 6px; transition: 0.15s;
+        border: 1px solid rgba(255,255,255,0.06);
     }
-    .history-item:hover { background: rgba(255,255,255,0.1); }
-    .history-item .hist-time { font-size: 10px; opacity: 0.4; margin-top: 2px; }
-    #new-chat-btn { margin-top: auto; font-size: 14px; padding: 8px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 30%, transparent 70%); font-weight: normal; box-shadow: none; }
+    .history-item:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.12); }
+    .history-item .hist-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-item .hist-time { font-size: 10px; opacity: 0.4; margin-top: 3px; }
+    .history-empty { text-align: center; opacity: 0.4; font-size: 13px; padding: 24px; }
+    #history-modal-footer {
+        display: flex; gap: 8px; padding: 12px 16px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    #history-modal-footer button {
+        font-size: 13px; padding: 8px 14px; border-radius: 12px;
+        box-shadow: none; margin: 0; font-weight: normal;
+    }
 
     /* mood selector */
     .mood-option {
@@ -163,18 +188,23 @@
 
 <br><br><br><br>
 
-<!-- history sidebar -->
-<div id="history-sidebar">
-    <h3>💬 chat history</h3>
-    <div id="history-list"></div>
-    <div style="display:flex;gap:6px;margin-top:auto;">
-        <button id="new-chat-btn" onclick="newChat()" style="flex:1;font-size:13px;padding:8px;border-radius:12px;background:color-mix(in srgb,var(--accent) 30%,transparent 70%);font-weight:normal;box-shadow:none;margin:0;"><i class="ri-add-line"></i> new</button>
-        <button onclick="clearCurrentChat()" style="font-size:13px;padding:8px 10px;border-radius:12px;background:rgba(255,80,80,0.2);color:#ff6b6b;font-weight:normal;box-shadow:none;margin:0;" title="Clear current chat"><i class="ri-delete-bin-line"></i></button>
-        <button onclick="clearAllChats()" style="font-size:13px;padding:8px 10px;border-radius:12px;background:rgba(255,80,80,0.15);color:#ff9999;font-weight:normal;box-shadow:none;margin:0;" title="Clear all history"><i class="ri-delete-bin-2-line"></i></button>
+<!-- history modal -->
+<div id="history-overlay" onclick="handleOverlayClick(event)">
+    <div id="history-modal">
+        <div id="history-modal-header">
+            <span>💬 chat history</span>
+            <button onclick="toggleSidebar()"><i class="ri-close-line"></i></button>
+        </div>
+        <div id="history-list"></div>
+        <div id="history-modal-footer">
+            <button onclick="newChat()" style="flex:1;background:color-mix(in srgb,var(--accent) 30%,transparent 70%);"><i class="ri-add-line"></i> new chat</button>
+            <button onclick="clearCurrentChat()" style="background:rgba(255,80,80,0.2);color:#ff6b6b;" title="Clear current chat"><i class="ri-delete-bin-line"></i></button>
+            <button onclick="clearAllChats()" style="background:rgba(255,80,80,0.15);color:#ff9999;" title="Clear all history"><i class="ri-delete-bin-2-line"></i> all</button>
+        </div>
     </div>
 </div>
 
-<button id="history-toggle" onclick="toggleSidebar()" title="Chat history" style="position:fixed;left:12px;top:12px;font-size:18px;padding:8px 12px;border-radius:12px;z-index:201;transition:left 0.25s;"><i class="ri-history-line"></i></button>
+<button id="history-toggle" onclick="toggleSidebar()" title="Chat history" style="position:fixed;left:12px;top:12px;font-size:18px;padding:8px 12px;border-radius:12px;z-index:201;"><i class="ri-history-line"></i></button>
 
 <!-- mood button -->
 <button id="mood-toggle-btn" onclick="toggleMoodMenu()" title="Change mood" style="position:fixed;top:12px;right:12px;font-size:13px;padding:6px 14px;border-radius:14px;z-index:201;font-weight:600;box-shadow:0 0 0 1px var(--accent),0 0 12px color-mix(in srgb,var(--accent) 30%,transparent 70%);">
@@ -597,10 +627,15 @@
         const chats = JSON.parse(localStorage.getItem("mochii_chats") || "{}");
         const list = document.getElementById("history-list");
         list.innerHTML = "";
-        Object.values(chats).sort((a,b) => b.time - a.time).forEach(chat => {
+        const sorted = Object.values(chats).sort((a,b) => b.time - a.time);
+        if (sorted.length === 0) {
+            list.innerHTML = '<div class="history-empty">No chat history yet</div>';
+            return;
+        }
+        sorted.forEach(chat => {
             const item = document.createElement("div");
             item.className = "history-item";
-            item.innerHTML = `<div>${chat.preview}</div><div class="hist-time">${new Date(chat.time).toLocaleDateString()}</div>`;
+            item.innerHTML = `<div class="hist-preview">${chat.preview}</div><div class="hist-time">${new Date(chat.time).toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})}</div>`;
             item.onclick = () => loadChat(chat.id);
             list.appendChild(item);
         });
@@ -631,7 +666,7 @@
             }
         });
         scrollBottom();
-        toggleSidebar();
+        document.getElementById("history-overlay").classList.remove("open");
     }
 
     function newChat() {
@@ -639,14 +674,15 @@
         currentChatId = Date.now().toString();
         history = [];
         messagesContainer.innerHTML = "";
-        toggleSidebar();
+        document.getElementById("history-overlay").classList.remove("open");
     }
 
     function toggleSidebar() {
-        const sidebar = document.getElementById("history-sidebar");
-        const btn = document.getElementById("history-toggle");
-        sidebar.classList.toggle("open");
-        btn.style.left = sidebar.classList.contains("open") ? "272px" : "12px";
+        document.getElementById("history-overlay").classList.toggle("open");
+    }
+
+    function handleOverlayClick(e) {
+        if (e.target === document.getElementById("history-overlay")) toggleSidebar();
     }
 
     function clearCurrentChat() {
