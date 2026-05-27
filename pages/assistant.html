@@ -228,6 +228,11 @@
     <button class="snap-btn" id="autosnap-btn" onclick="toggleAutoSnap()" title="Auto-snap"><i class="ri-timer-line"></i> auto</button>
     <button class="stop-btn" onclick="stopScreenShare()" title="Stop sharing"><i class="ri-stop-circle-line"></i> stop</button>
 </div>
+<div id="image-preview-bar" style="position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%); background: color-mix(in srgb, var(--bg-2) 80%, transparent 20%); box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 8px 24px rgba(0,0,0,0.3); border-radius: 16px; padding: 10px 16px; display: none; align-items: center; gap: 12px; z-index: 100; font-size: 14px; color: var(--text);">
+    <img id="image-thumb" src="" alt="image" style="height: 50px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);">
+    <span>image attached</span>
+    <button class="stop-btn" onclick="clearImagePreview()" title="Remove image"><i class="ri-delete-bin-line"></i></button>
+</div>
 
 <div class="container" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); gap: 4px;">
     <button onclick="toggleScreenShare()" id="share-btn" title="Share screen"><i class="ri-computer-line"></i></button>
@@ -484,7 +489,13 @@ hiddenImageInput.addEventListener('change', () => {
     reader.onload = () => {
         const base64 = reader.result.split(',')[1];
         pendingUserImage = base64;
-        // optional preview could be added here
+        // show preview similar to screen share
+        const imgPreviewBar = document.getElementById('image-preview-bar');
+        const imgThumb = document.getElementById('image-thumb');
+        if (imgPreviewBar && imgThumb) {
+            imgThumb.src = 'data:image/jpeg;base64,' + base64;
+            imgPreviewBar.style.display = 'flex';
+        }
     };
     reader.readAsDataURL(file);
 });
