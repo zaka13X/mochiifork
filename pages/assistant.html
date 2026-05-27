@@ -123,6 +123,7 @@
         transition: transform 0.25s ease; padding: 16px;
     }
     #history-sidebar.open { transform: translateX(0); }
+    #history-sidebar.open ~ * .messages-container { left: calc(50% + 130px); }
     #history-sidebar h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; opacity: 0.8; }
     .history-item {
         padding: 10px 12px; border-radius: 12px; cursor: pointer; font-size: 13px;
@@ -135,7 +136,7 @@
 
     /* mood selector */
     #mood-bar {
-        position: fixed; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 100;
+        position: fixed; top: 60px; right: 12px; display: flex; gap: 6px; z-index: 100; flex-wrap: wrap; justify-content: flex-end; max-width: 400px;
     }
     #mood-bar button {
         font-size: 12px; padding: 5px 12px; border-radius: 12px;
@@ -177,7 +178,11 @@
 <div id="history-sidebar">
     <h3>💬 chat history</h3>
     <div id="history-list"></div>
-    <button id="new-chat-btn" onclick="newChat()"><i class="ri-add-line"></i> new chat</button>
+    <div style="display:flex;gap:6px;margin-top:auto;">
+        <button id="new-chat-btn" onclick="newChat()" style="flex:1;font-size:13px;padding:8px;border-radius:12px;background:color-mix(in srgb,var(--accent) 30%,transparent 70%);font-weight:normal;box-shadow:none;margin:0;"><i class="ri-add-line"></i> new</button>
+        <button onclick="clearCurrentChat()" style="font-size:13px;padding:8px 10px;border-radius:12px;background:rgba(255,80,80,0.2);color:#ff6b6b;font-weight:normal;box-shadow:none;margin:0;" title="Clear current chat"><i class="ri-delete-bin-line"></i></button>
+        <button onclick="clearAllChats()" style="font-size:13px;padding:8px 10px;border-radius:12px;background:rgba(255,80,80,0.15);color:#ff9999;font-weight:normal;box-shadow:none;margin:0;" title="Clear all history"><i class="ri-delete-bin-2-line"></i></button>
+    </div>
 </div>
 
 <button id="history-toggle" onclick="toggleSidebar()" title="Chat history" style="position:fixed;left:12px;top:12px;font-size:18px;padding:8px 12px;border-radius:12px;z-index:201;transition:left 0.25s;"><i class="ri-history-line"></i></button>
@@ -322,7 +327,7 @@
         return h + ':' + m;
     }
 
-    function addUserMessage(text, imgBase64) {
+    function addUserMessage(text, imgBase64, stamp) {
         const div = document.createElement("div");
         div.classList.add("my-message");
         if (imgBase64) {
@@ -336,7 +341,7 @@
         p.textContent = text;
         div.appendChild(p);
         const t = document.createElement("div");
-        t.className = "msg-time"; t.textContent = formatTime();
+        t.className = "msg-time"; t.textContent = stamp || formatTime();
         div.appendChild(t);
         messagesContainer.appendChild(div);
         scrollBottom();
@@ -351,10 +356,10 @@
         return div;
     }
 
-    function addAIMessage(text, loadingDiv) {
+    function addAIMessage(text, loadingDiv, stamp) {
         if (loadingDiv) { loadingDiv.innerHTML = ""; renderContent(loadingDiv, text); }
         const t = document.createElement("div");
-        t.className = "msg-time"; t.textContent = formatTime();
+        t.className = "msg-time"; t.textContent = stamp || formatTime();
         loadingDiv.appendChild(t);
 
         // action buttons
@@ -416,8 +421,9 @@
                 return;
             }
             const reply = data.text;
-            history.push({ role:"assistant", content:reply });
-            addAIMessage(reply, loadingDiv);
+            const stamp = formatTime();
+            history.push({ role:"assistant", content:reply, stamp });
+            addAIMessage(reply, loadingDiv, stamp);
             saveChat();
         } catch(err) {
             loadingDiv.textContent = "Error: " + err.message;
@@ -454,6 +460,7 @@
 
         addUserMessage(text, snap);
         await askAI(text, snap);
+        // stamp is set inside askAI
     }
 
     input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
@@ -600,16 +607,17 @@
         history = chat.history;
         messagesContainer.innerHTML = "";
         history.forEach(msg => {
+            const stamp = msg.stamp || "";
             if (msg.role === "user") {
                 const text = Array.isArray(msg.content) ? msg.content.find(c=>c.type==="text")?.text || "" : msg.content;
                 const img = Array.isArray(msg.content) ? msg.content.find(c=>c.type==="image_url")?.image_url?.url?.split(",")[1] : null;
-                addUserMessage(text, img);
+                addUserMessage(text, img, stamp);
             } else if (msg.role === "assistant") {
                 const div = document.createElement("div");
                 div.classList.add("ai-message");
                 messagesContainer.appendChild(div);
                 renderContent(div, typeof msg.content === "string" ? msg.content : "");
-                const t = document.createElement("div"); t.className="msg-time"; t.textContent=formatTime(); div.appendChild(t);
+                const t = document.createElement("div"); t.className="msg-time"; t.textContent=stamp; div.appendChild(t);
                 const actions = document.createElement("div"); actions.className="msg-actions";
                 actions.innerHTML=`<button onclick="copyMsg(this)"><i class="ri-clipboard-line"></i> copy</button><button onclick="regenMsg()"><i class="ri-refresh-line"></i> regen</button>`;
                 div.insertAdjacentElement("afterend", actions);
@@ -632,6 +640,26 @@
         const btn = document.getElementById("history-toggle");
         sidebar.classList.toggle("open");
         btn.style.left = sidebar.classList.contains("open") ? "272px" : "12px";
+    }
+
+    function clearCurrentChat() {
+        if (!confirm("Clear this chat?")) return;
+        const chats = JSON.parse(localStorage.getItem("mochii_chats") || "{}");
+        delete chats[currentChatId];
+        localStorage.setItem("mochii_chats", JSON.stringify(chats));
+        history = [];
+        messagesContainer.innerHTML = "";
+        currentChatId = Date.now().toString();
+        renderHistoryList();
+    }
+
+    function clearAllChats() {
+        if (!confirm("Clear ALL chat history?")) return;
+        localStorage.removeItem("mochii_chats");
+        history = [];
+        messagesContainer.innerHTML = "";
+        currentChatId = Date.now().toString();
+        renderHistoryList();
     }
 
     // ── init ──────────────────────────────────────────────────────────────
