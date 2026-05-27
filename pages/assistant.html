@@ -66,10 +66,6 @@
         border-radius: 20px 20px 10px 20px; max-width: 400px; position: relative; margin-bottom: 4px; right: 0;
     }
 
-    .msg-time {
-        font-size: 10px; opacity: 0.4; margin-top: 4px; text-align: right;
-    }
-
     .ai-message {
         background: color-mix(in srgb, var(--bg) 75%, transparent 25%);
         padding: 15px; box-shadow: 0 0 0 2px rgba(255,255,255,0.05), 0 16px 32px rgba(0,0,0,0.12);
@@ -170,12 +166,6 @@
         border-left: 3px solid var(--accent);
     }
 
-    /* token counter */
-    #token-counter {
-        position: absolute; right: 120px; bottom: 28px;
-        font-size: 11px; opacity: 0.4; pointer-events: none;
-    }
-
     /* history toggle btn */
     #history-toggle {
         position: fixed; left: 12px; top: 12px; font-size: 18px; padding: 8px 12px;
@@ -243,7 +233,6 @@
     <button onclick="toggleScreenShare()" id="share-btn" title="Share screen"><i class="ri-computer-line"></i></button>
     <button onclick="switchResponseType()" id="mode-btn" title="Switch mode"><i class="ri-image-ai-line"></i></button>
     <input type="text" id="chat-input" placeholder="Ask mochii AI...">
-    <span id="token-counter">0</span>
     <button onclick="sendMessage()" id="send-btn"><i class="ri-corner-down-left-line"></i></button>
 </div>
 
@@ -273,7 +262,6 @@
 <script>
     const input = document.getElementById("chat-input");
     const messagesContainer = document.getElementById("messages");
-    const tokenCounter = document.getElementById("token-counter");
 
     const placeholders = ["Ask mochii AI...", "What's 2 + 2?", "How do I make a steak?", "What can you do?", "Explain this code...", "What's on my screen?"];
     input.placeholder = placeholders[Math.floor(Math.random() * placeholders.length)];
@@ -334,14 +322,6 @@
         return { role: "system", content: moodPrompts[mood] };
     }
 
-    // ── token counter ─────────────────────────────────────────────────────
-    input.addEventListener("input", () => {
-        const len = input.value.length;
-        tokenCounter.textContent = len > 0 ? len + " chars" : "";
-        tokenCounter.style.opacity = len > 3000 ? "0.8" : "0.4";
-        tokenCounter.style.color = len > 3000 ? "#ff6b6b" : "";
-    });
-
     // ── render ────────────────────────────────────────────────────────────
     function renderContent(container, markdown) {
         let processed = markdown
@@ -357,14 +337,7 @@
 
     function scrollBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
 
-    function formatTime() {
-        const d = new Date();
-        const h = d.getHours().toString().padStart(2,'0');
-        const m = d.getMinutes().toString().padStart(2,'0');
-        return h + ':' + m;
-    }
-
-    function addUserMessage(text, imgBase64, stamp) {
+    function addUserMessage(text, imgBase64) {
         const div = document.createElement("div");
         div.classList.add("my-message");
         if (imgBase64) {
@@ -377,9 +350,6 @@
         p.style.margin = "4px 0 0 0";
         p.textContent = text;
         div.appendChild(p);
-        const t = document.createElement("div");
-        t.className = "msg-time"; t.textContent = stamp || formatTime();
-        div.appendChild(t);
         messagesContainer.appendChild(div);
         scrollBottom();
     }
@@ -393,12 +363,8 @@
         return div;
     }
 
-    function addAIMessage(text, loadingDiv, stamp) {
+    function addAIMessage(text, loadingDiv) {
         if (loadingDiv) { loadingDiv.innerHTML = ""; renderContent(loadingDiv, text); }
-        const t = document.createElement("div");
-        t.className = "msg-time"; t.textContent = stamp || formatTime();
-        loadingDiv.appendChild(t);
-
         // action buttons
         const actions = document.createElement("div");
         actions.className = "msg-actions";
@@ -458,9 +424,8 @@
                 return;
             }
             const reply = data.text;
-            const stamp = formatTime();
-            history.push({ role:"assistant", content:reply, stamp });
-            addAIMessage(reply, loadingDiv, stamp);
+                history.push({ role:"assistant", content:reply });
+            addAIMessage(reply, loadingDiv);
             saveChat();
         } catch(err) {
             loadingDiv.textContent = "Error: " + err.message;
@@ -483,7 +448,6 @@
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
-        tokenCounter.textContent = "";
 
         if (responseType === "image") { addUserMessage(text); generateImage(text); return; }
 
@@ -653,13 +617,12 @@
             if (msg.role === "user") {
                 const text = Array.isArray(msg.content) ? msg.content.find(c=>c.type==="text")?.text || "" : msg.content;
                 const img = Array.isArray(msg.content) ? msg.content.find(c=>c.type==="image_url")?.image_url?.url?.split(",")[1] : null;
-                addUserMessage(text, img, stamp);
+                addUserMessage(text, img);
             } else if (msg.role === "assistant") {
                 const div = document.createElement("div");
                 div.classList.add("ai-message");
                 messagesContainer.appendChild(div);
                 renderContent(div, typeof msg.content === "string" ? msg.content : "");
-                const t = document.createElement("div"); t.className="msg-time"; t.textContent=stamp; div.appendChild(t);
                 const actions = document.createElement("div"); actions.className="msg-actions";
                 actions.innerHTML=`<button onclick="copyMsg(this)"><i class="ri-clipboard-line"></i> copy</button><button onclick="regenMsg()"><i class="ri-refresh-line"></i> regen</button>`;
                 div.insertAdjacentElement("afterend", actions);
