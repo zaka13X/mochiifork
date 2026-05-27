@@ -232,6 +232,7 @@
 <div class="container" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); gap: 4px;">
     <button onclick="toggleScreenShare()" id="share-btn" title="Share screen"><i class="ri-computer-line"></i></button>
     <button onclick="switchResponseType()" id="mode-btn" title="Switch mode"><i class="ri-image-ai-line"></i></button>
+    <button id="image-upload-btn" title="Attach image"><i class="ri-image-add-line"></i></button>
     <input type="text" id="chat-input" placeholder="Ask mochii AI...">
     <button onclick="sendMessage()" id="send-btn"><i class="ri-corner-down-left-line"></i></button>
 </div>
@@ -267,14 +268,15 @@
     input.placeholder = placeholders[Math.floor(Math.random() * placeholders.length)];
 
     // ── state ─────────────────────────────────────────────────────────────
-    let history = [];
-    let responseType = "text";
-    let pendingSnapshot = null;
-    let screenStream = null;
-    let thumbInterval = null;
-    let autoSnapOn = false;
-    let autoSnapInterval = null;
-    let mood = "casual";
+let history = [];
+let responseType = "text";
+let pendingSnapshot = null;
+let pendingUserImage = null;
+let screenStream = null;
+let thumbInterval = null;
+let autoSnapOn = false;
+let autoSnapInterval = null;
+let mood = "casual";
     let currentChatId = Date.now().toString();
     let snapOnSend = true;
     let lastUserText = "";
@@ -444,27 +446,48 @@
     }
 
     // ── send ──────────────────────────────────────────────────────────────
-    async function sendMessage() {
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = "";
+async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
 
-        if (responseType === "image") { addUserMessage(text); generateImage(text); return; }
+    if (responseType === "image") { addUserMessage(text); generateImage(text); return; }
 
-        // snap on send
-        if (snapOnSend && screenStream && !pendingSnapshot) captureSnapshot();
-        await new Promise(r => setTimeout(r, 50)); // tiny delay for snapshot to register
+    // snap on send
+    if (snapOnSend && screenStream && !pendingSnapshot) captureSnapshot();
+    await new Promise(r => setTimeout(r, 50)); // tiny delay for snapshot to register
 
-        const snap = pendingSnapshot;
-        pendingSnapshot = null;
-        updateSnapIndicator();
+    const snap = pendingSnapshot;
+    const img = pendingUserImage;
+    pendingSnapshot = null;
+    pendingUserImage = null;
+    updateSnapIndicator();
 
-        addUserMessage(text, snap);
-        await askAI(text, snap);
-        // stamp is set inside askAI
-    }
+    addUserMessage(text, img || snap);
+    await askAI(text, img || snap);
+    // stamp is set inside askAI
+}
 
     input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+// image upload handling
+const hiddenImageInput = document.createElement('input');
+hiddenImageInput.type = 'file';
+hiddenImageInput.accept = 'image/*';
+hiddenImageInput.style.display = 'none';
+document.body.appendChild(hiddenImageInput);
+document.getElementById('image-upload-btn').addEventListener('click', () => hiddenImageInput.click());
+hiddenImageInput.addEventListener('change', () => {
+    const file = hiddenImageInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        pendingUserImage = base64;
+        // optional preview could be added here
+    };
+    reader.readAsDataURL(file);
+});
 
     // ── mode toggle ───────────────────────────────────────────────────────
     function switchResponseType() {
