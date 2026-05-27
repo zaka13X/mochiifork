@@ -361,6 +361,15 @@ let mood = "casual";
         scrollBottom();
     }
 
+    function clearImagePreview() {
+    pendingUserImage = null;
+    const imgPreviewBar = document.getElementById('image-preview-bar');
+    const imgThumb = document.getElementById('image-thumb');
+    if (imgPreviewBar) imgPreviewBar.style.display = 'none';
+    if (imgThumb) imgThumb.src = '';
+    updateSnapIndicator();
+}
+
     function addLoadingMessage() {
         const div = document.createElement("div");
         div.classList.add("ai-message");
@@ -370,19 +379,40 @@ let mood = "casual";
         return div;
     }
 
-    function addAIMessage(text, loadingDiv) {
-        if (loadingDiv) { loadingDiv.innerHTML = ""; renderContent(loadingDiv, text); }
-        // action buttons
-        const actions = document.createElement("div");
-        actions.className = "msg-actions";
-        actions.innerHTML = `
-            <button onclick="copyMsg(this)" title="Copy"><i class="ri-clipboard-line"></i> copy</button>
-            <button onclick="regenMsg()" title="Regenerate"><i class="ri-refresh-line"></i> regen</button>
-        `;
-        // insert actions after the ai message
-        loadingDiv.insertAdjacentElement("afterend", actions);
-        scrollBottom();
+function addAIMessage(text, loadingDiv) {
+    if (loadingDiv) {
+        loadingDiv.innerHTML = "";
+        renderContent(loadingDiv, text);
     }
+    const actions = document.createElement("div");
+    actions.className = "msg-actions";
+    actions.innerHTML = `
+        <button onclick="copyMsg(this)" title="Copy">
+            <i class="ri-clipboard-line"></i> copy
+        </button>
+
+        <button onclick="regenMsg()" title="Regenerate">
+            <i class="ri-refresh-line"></i> regen
+        </button>
+
+        <button onclick="deleteMsg(this)" title="Delete">
+            <i class="ri-delete-bin-line"></i> delete
+        </button>
+    `;
+    loadingDiv.insertAdjacentElement("afterend", actions);
+    scrollBottom();
+}
+
+function deleteMsg(btn) {
+    const actions = btn.closest(".msg-actions");
+    const msg = actions.previousElementSibling;
+
+    if (msg) {
+        msg.remove();
+    }
+
+    actions.remove();
+}
 
     function copyMsg(btn) {
         const msg = btn.closest(".msg-actions").previousElementSibling;
@@ -391,19 +421,31 @@ let mood = "casual";
         setTimeout(() => btn.innerHTML = '<i class="ri-clipboard-line"></i> copy', 2000);
     }
 
-    async function regenMsg() {
-        if (!lastUserText) return;
-        // remove last ai message + actions
-        const msgs = messagesContainer.querySelectorAll(".ai-message, .msg-actions");
-        if (msgs.length >= 2) {
-            msgs[msgs.length - 1].remove();
-            msgs[msgs.length - 2].remove();
+async function regenMsg() {
+    if (!lastUserText) return;
+    const allActions = messagesContainer.querySelectorAll(".msg-actions");
+    if (allActions.length > 0) {
+        const lastActions = allActions[allActions.length - 1];
+        const lastMsg = lastActions.previousElementSibling;
+        if (lastMsg) {
+            lastMsg.remove();
         }
-        // remove last entry from history
-        if (history.length > 0 && history[history.length-1].role === "assistant") history.pop();
-        if (history.length > 0 && history[history.length-1].role === "user") history.pop();
-        await askAI(lastUserText, lastUserSnap);
+        lastActions.remove();
     }
+    if (
+        history.length > 0 &&
+        history[history.length - 1].role === "assistant"
+    ) {
+        history.pop();
+    }
+    if (
+        history.length > 0 &&
+        history[history.length - 1].role === "user"
+    ) {
+        history.pop();
+    }
+    await askAI(lastUserText, lastUserSnap);
+}
 
     // ── AI call ───────────────────────────────────────────────────────────
     async function askAI(userText, imgBase64) {
@@ -453,24 +495,27 @@ let mood = "casual";
     // ── send ──────────────────────────────────────────────────────────────
 async function sendMessage() {
     const text = input.value.trim();
-    if (!text) return;
+
+    // allow image-only sends too
+    if (!text && !pendingUserImage && !pendingSnapshot) return;
     input.value = "";
-
-    if (responseType === "image") { addUserMessage(text); generateImage(text); return; }
-
-    // snap on send
-    if (snapOnSend && screenStream && !pendingSnapshot) captureSnapshot();
-    await new Promise(r => setTimeout(r, 50)); // tiny delay for snapshot to register
-
+    if (responseType === "image") {
+        addUserMessage(text);
+        generateImage(text);
+        return;
+    }
+    // auto snap if screen sharing
+    if (snapOnSend && screenStream && !pendingSnapshot) {
+        captureSnapshot();
+    }
+    await new Promise(r => setTimeout(r, 50));
     const snap = pendingSnapshot;
     const img = pendingUserImage;
     pendingSnapshot = null;
-    pendingUserImage = null;
+    clearImagePreview();
     updateSnapIndicator();
-
-    addUserMessage(text, img || snap);
-    await askAI(text, img || snap);
-    // stamp is set inside askAI
+    addUserMessage(text || "[image]", img || snap);
+    await askAI(text || "What's in this image?", img || snap);
 }
 
     input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
@@ -598,15 +643,21 @@ hiddenImageInput.addEventListener('change', () => {
         input.placeholder = "Ask about your screenshot...";
     }
 
-    function updateSnapIndicator() {
-        const sendBtn = document.getElementById("send-btn");
-        if (pendingSnapshot) {
-            sendBtn.classList.add("active-btn"); sendBtn.title = "Send with screenshot";
-        } else {
-            sendBtn.classList.remove("active-btn"); sendBtn.title = "Send";
-            if (responseType === "text") input.placeholder = "Ask mochii AI...";
+function updateSnapIndicator() {
+    const sendBtn = document.getElementById("send-btn");
+
+    if (pendingSnapshot || pendingUserImage) {
+        sendBtn.classList.add("active-btn");
+        sendBtn.title = "Send with attachment";
+    } else {
+        sendBtn.classList.remove("active-btn");
+        sendBtn.title = "Send";
+
+        if (responseType === "text") {
+            input.placeholder = "Ask mochii AI...";
         }
     }
+}
 
     // ── chat history ──────────────────────────────────────────────────────
     function saveChat() {
