@@ -513,6 +513,7 @@ async function sendMessage() {
     const img = pendingUserImage;
     pendingSnapshot = null;
     clearImagePreview();
+    hiddenImageInput.value = "";
     updateSnapIndicator();
     addUserMessage(text || "[image]", img || snap);
     await askAI(text || "What's in this image?", img || snap);
