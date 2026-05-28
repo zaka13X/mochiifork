@@ -50,6 +50,8 @@
             border-radius: 20px;
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
+            overflow: hidden;
+            display: block;
         }
 
         .gamecontrols {
@@ -501,6 +503,7 @@
             frame.style.width  = '100vw';
             frame.style.border = 'none';
             frame.style.borderRadius = '0';
+            frame.style.overflow = 'hidden';
 
             setTimeout(() => { overlayNotice.style.opacity = 1; }, 500);
             setTimeout(() => { overlayNotice.style.opacity = 0; }, 3000);
