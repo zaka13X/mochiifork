@@ -131,6 +131,26 @@ function inject(html) {
 }
 
 /**
+ * Fetch with one automatic retry on network failure.
+ * @param {Request} request
+ * @returns {Promise<Response>}
+ */
+async function fetchWithRetry(request) {
+	try {
+		return await fetch(request);
+	} catch (firstErr) {
+		console.warn("[mochii sw] fetch failed, retrying once:", firstErr);
+		try {
+			// Clone needed because the body stream may have been consumed
+			return await fetch(request.clone ? request.clone() : request);
+		} catch (secondErr) {
+			console.error("[mochii sw] fetch retry also failed:", secondErr);
+			throw secondErr;
+		}
+	}
+}
+
+/**
  * @param {FetchEvent} event
  * @returns {Promise<Response>}
  */
@@ -138,7 +158,22 @@ async function handleRequest(event) {
 	await scramjet.loadConfig();
 
 	if (scramjet.route(event)) {
-		const response = await scramjet.fetch(event);
+		let response;
+		try {
+			response = await scramjet.fetch(event);
+		} catch (err) {
+			console.error("[mochii sw] scramjet.fetch failed:", err);
+			return new Response(
+				`<html><body style="background:#111;color:#fff;font-family:sans-serif;padding:2rem">
+					<h2>⚠️ Proxy Error</h2>
+					<p>Scramjet couldn't load this page. This is usually a Wisp server issue.</p>
+					<p style="opacity:.6;font-size:13px">${err.message}</p>
+					<button onclick="location.reload()" style="margin-top:1rem;padding:8px 18px;border-radius:8px;border:none;background:#7c3aed;color:#fff;cursor:pointer">Retry</button>
+				</body></html>`,
+				{ status: 503, headers: { "content-type": "text/html" } }
+			);
+		}
+
 		const contentType = response.headers.get("content-type") || "";
 
 		if (contentType.includes("text/html")) {
@@ -159,15 +194,25 @@ async function handleRequest(event) {
 		return response;
 	}
 
-	return fetch(event.request);
+	return fetchWithRetry(event.request);
 }
+
+self.addEventListener("install", () => {
+	// Take control immediately so new SW activates without a page reload
+	self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+	// Claim all existing clients so they use the new SW right away
+	event.waitUntil(self.clients.claim());
+});
 
 self.addEventListener("fetch", (event) => {
 	const url = event.request.url;
 
-  	if (url.includes("supabase.co")) {
-    	return;
-  	}
+	if (url.includes("supabase.co")) {
+		return;
+	}
 
 	event.respondWith(handleRequest(event));
 });
@@ -215,4 +260,3 @@ scramjet.addEventListener("request", (e) => {
 		}
 	}
 });
-
