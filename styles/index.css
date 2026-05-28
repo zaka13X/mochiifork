@@ -377,6 +377,7 @@ p a:hover {
     transform-origin: center center;
 }
 
+.cleardata-wrapper.settings-hidden,
 .apps-wrapper.settings-hidden,
 .games-wrapper.settings-hidden,
 .partners-wrapper.settings-hidden,
@@ -387,6 +388,7 @@ p a:hover {
     transform-origin: center center;
 }
 
+.cleardata-wrapper.settings-shown,
 .apps-wrapper.settings-shown,
 .games-wrapper.settings-shown,
 .partners-wrapper.settings-shown,
@@ -569,6 +571,7 @@ p a:hover {
     background: var(--bg-3);
 }
 
+.cleardata-wrapper,
 .apps-wrapper,
 .games-wrapper {
     position: fixed;

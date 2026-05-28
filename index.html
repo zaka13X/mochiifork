@@ -58,6 +58,7 @@
         data-website-id="aa852720-724b-4441-be4c-6db9ef160eb9"></script>
     <link rel="stylesheet" href="/assets/css/font.css">
     <link rel="stylesheet" href="/assets/icons/fonts/remixicon.css">
+    <!-- could import lumin here  -->
     <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
@@ -287,6 +288,12 @@
                     </label>
                     <br>
                     <br>
+                    <br><br>
+
+                    <h2>clear data</h2>
+                    <p>clears all saved data from mochii</p>
+                    <button class="button" style="margin-left: 0;" onclick="clearData()">clear</button>
+                    <br><br><br>
                 </div>
 
                 <div id="settings-gaming" class="settings-page">
@@ -786,6 +793,7 @@
         const gamesHolder = document.querySelector(".games-wrapper")
         const downloadHolder = document.querySelector(".download-wrapper")
         const partnerHolder = document.querySelector(".partners-wrapper")
+        const clearHolder = document.querySelector(".cleardata-wrapper")
 
         const general = document.querySelector("#settings-general")
         const cloaking = document.querySelector("#settings-cloaking")
@@ -848,6 +856,8 @@
                     togglePartners()
                 } else if (downloadHolder.classList.contains("settings-shown")) {
                     toggleDownloadGames()
+                } else if (clearHolder.classList.contains("settings-shown")) {
+                    clearData()
                 }
                 const newBlurOverlay = document.createElement("div")
                 newBlurOverlay.classList.add("blurOverlay")
@@ -865,6 +875,71 @@
                 newBlurOverlay.remove()
             }
         }
+
+    function clearData() {
+        if (clearHolder.classList.contains("settings-hidden")) {
+
+            if (appsHolder.classList.contains("settings-shown")) {
+                toggleApps()
+            } else if (gamesHolder.classList.contains("settings-shown")) {
+                toggleGames()
+            } else if (partnerHolder.classList.contains("settings-shown")) {
+                togglePartners()
+            } else if (settingsHolder.classList.contains("settings-shown")) {
+                toggleSettings()
+            }
+
+            const newBlurOverlay = document.createElement("div")
+            newBlurOverlay.classList.add("blurOverlay")
+
+            document.body.appendChild(newBlurOverlay)
+
+            newBlurOverlay.addEventListener("click", () => {
+                clearData()
+            })
+
+            clearHolder.classList.remove("settings-hidden")
+            clearHolder.classList.add("settings-shown")
+
+            console.log("Clear data menu opened.")
+
+        } else {
+            localStorage.clear()
+            sessionStorage.clear()
+
+            document.cookie.split(";").forEach(cookie => {
+                const eqPos = cookie.indexOf("=")
+                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+
+                document.cookie =
+                    name +
+                    "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+            })
+
+            if (window.indexedDB && indexedDB.databases) {
+                indexedDB.databases().then(databases => {
+                    databases.forEach(db => {
+                        indexedDB.deleteDatabase(db.name)
+                    })
+                })
+            }
+
+            clearHolder.classList.remove("settings-shown")
+            clearHolder.classList.add("settings-hidden")
+
+            const newBlurOverlay = document.querySelector(".blurOverlay")
+
+            if (newBlurOverlay) {
+                newBlurOverlay.remove()
+            }
+
+            console.log("all website data cleared.")
+
+            setTimeout(() => {
+                location.reload()
+            }, 500)
+        }
+    }
 
         function toggleDownloadGames() {
             if (downloadHolder.classList.contains("settings-hidden")) {

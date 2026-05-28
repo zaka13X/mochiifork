@@ -238,7 +238,7 @@
     <button onclick="toggleScreenShare()" id="share-btn" title="Share screen"><i class="ri-computer-line"></i></button>
     <button onclick="switchResponseType()" id="mode-btn" title="Switch mode"><i class="ri-image-ai-line"></i></button>
     <button id="image-upload-btn" title="Attach image"><i class="ri-image-add-line"></i></button>
-    <input type="text" id="chat-input" placeholder="Ask mochii AI...">
+    <input type="text" id="chat-input" placeholder="ask mochii ai...">
     <button onclick="sendMessage()" id="send-btn"><i class="ri-corner-down-left-line"></i></button>
 </div>
 
@@ -269,7 +269,7 @@
     const input = document.getElementById("chat-input");
     const messagesContainer = document.getElementById("messages");
 
-    const placeholders = ["Ask mochii AI...", "What's 2 + 2?", "How do I make a steak?", "What can you do?", "Explain this code...", "What's on my screen?"];
+    const placeholders = ["ask mochii AI...", "whats 2 + 2?", "how do i make a steak?", "what can you do?", "explain this code...", "whats on my screen?"];
     input.placeholder = placeholders[Math.floor(Math.random() * placeholders.length)];
 
     // ── state ─────────────────────────────────────────────────────────────
@@ -295,10 +295,10 @@ let mood = "casual";
         school: "You are mochii ai helping a student. Give ONLY the direct answer or solution. No explanations, no steps, no context unless asked. Format cleanly and simply."
     };
     const moodDescriptions = {
-        casual: "Friendly and conversational, like chatting with a friend.",
-        professional: "Precise and thorough, formal tone.",
-        concise: "Short direct answers only, no fluff.",
-        school: "Just the answer, no explanation. Clean and simple."
+        casual: "friendly and conversational, like chatting with a friend.",
+        professional: "precise and thorough, formal tone.",
+        concise: "short direct answers only, no fluff.",
+        school: "just the answer, no explanation. clean and simple."
     };
 
     function setMood(m) {
