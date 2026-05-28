@@ -57,22 +57,29 @@ function testWisp(url) {
     });
 }
 
-// Register a single SW with retries
+// Register a single SW with retries.
+// Tries scope "/" first (requires Service-Worker-Allowed header in vercel.json).
+// Falls back to the SW's own directory scope if that fails.
 async function registerOne(path, label, maxRetries = 3) {
+    // Derive the directory scope as a fallback (e.g. "/uv/" for "/uv/sw.js")
+    const dirScope = path.substring(0, path.lastIndexOf("/") + 1);
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        // On first two attempts try root scope; last attempt fall back to dir scope
+        const scope = attempt < maxRetries ? "/" : dirScope;
         try {
-            const reg = await navigator.serviceWorker.register(path, { scope: "/" });
+            const reg = await navigator.serviceWorker.register(path, { scope });
             await navigator.serviceWorker.ready;
             console.log(
-                "%cmochii" + `%c ${label} sw registered (attempt ${attempt})`,
+                "%cmochii" + `%c ${label} sw registered (attempt ${attempt}, scope: ${scope})`,
                 "color: white; background: linear-gradient(to bottom right, #040c16, #000000); border-radius: 5px; font-weight: bold; padding: 6px; font-family: sans-serif;",
                 "color: white;"
             );
             return reg;
         } catch (e) {
-            console.warn(`mochii: ${label} sw registration failed (attempt ${attempt}/${maxRetries})`, e);
+            console.warn(`mochii: ${label} sw registration failed (attempt ${attempt}/${maxRetries}, scope: ${scope})`, e);
             if (attempt < maxRetries) {
-                await new Promise(r => setTimeout(r, 1500 * attempt)); // back off
+                await new Promise(r => setTimeout(r, 1000 * attempt));
             }
         }
     }
@@ -91,7 +98,7 @@ async function registerSW() {
     // Run wisp health check in parallel with SW registration
     const [bestWisp] = await Promise.allSettled([
         getBestWisp(),
-        registerOne("/uv/sw.js", "UV")
+        registerOne("/uv/uv.sw.js", "UV")
             .then(() => showToast("success", "Ultraviolet worker initialized!", "fas fa-check-circle"))
             .catch(() => showToast("error", "UV worker failed to register — games may not load.", "fas fa-times-circle")),
         registerOne("/sw.js", "Scramjet")
