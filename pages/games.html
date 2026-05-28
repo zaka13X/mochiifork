@@ -16,8 +16,6 @@
 
 <body>
 
-    
-
     <nav>
         <ul id="nav-ul" class="">
             <div class="container" style="display: flex; flex-direction: row;">
@@ -156,7 +154,6 @@
             transition: 0.3s;
         }
 
-
         .title {
             z-index: 31;
             transition: 0.2s;
@@ -226,12 +223,63 @@
             opacity: 0.3;
             background: radial-gradient(at top, var(--bg-3) 30%, transparent 70%);
         }
+
+        /* --- loading skeleton --- */
+        .app-skeleton {
+            width: 280px;
+            height: 170px;
+            border-radius: 15px;
+            margin: 10px;
+            background: var(--bg-2, #1a1a2e);
+            position: relative;
+            overflow: hidden;
+        }
+        .app-skeleton::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+            animation: shimmer 1.4s infinite;
+        }
+        @keyframes shimmer {
+            0%   { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* --- error / empty state --- */
+        #games-error {
+            display: none;
+            position: absolute;
+            top: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: var(--bright-text, #fff);
+            z-index: 10;
+        }
+        #games-error p { opacity: 0.6; margin-bottom: 12px; }
+        #games-error button {
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent, #7c3aed);
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #games-error button:hover { opacity: 0.85; }
     </style>
 
     <div id="particles-container"></div>
     <div class="hcenter">
         <h1 style="text-align: center;">Games</h1>
         <input style="margin: 3px;" type="text" placeholder="Search for a game..." onkeyup="searchApps(this.value)">
+    </div>
+
+    <!-- Error state shown if games fail to load -->
+    <div id="games-error">
+        <p id="games-error-msg">Failed to load games.</p>
+        <button onclick="retryLoad()">↺ Retry</button>
     </div>
 
     <div class="apps-container hcenter" style="top: 200px;">
@@ -255,7 +303,6 @@
 
         window.addEventListener("keydown", (e) => {
             if (e.ctrlKey && e.key === "m") {
-                console.log("Key pressed")
                 e.preventDefault()
                 if (!ul.classList.contains("active")) {
                     ul.classList.add("active")
@@ -269,50 +316,131 @@
                 } else {
                     ul.classList.remove("active")
                     const blurr = document.querySelector(".bluroverlay")
-                    blurr.remove()
+                    if (blurr) blurr.remove()
                 }
             }
         })
 
         const acont = document.querySelector('.apps-container');
+        const errorBox = document.getElementById("games-error");
+        const errorMsg = document.getElementById("games-error-msg");
 
-        let data
-        let res
-
-        async function getJson() {
-            res = await fetch('/assets/json/gn-math.json');
-            data = await res.json();
+        // Show skeleton placeholders while loading
+        function showSkeletons(count = 12) {
+            acont.innerHTML = "";
+            for (let i = 0; i < count; i++) {
+                const s = document.createElement("div");
+                s.classList.add("app-skeleton");
+                acont.appendChild(s);
+            }
         }
 
-        function loadApps() {
-            getJson().then(() => {
-                data.forEach(app => {
-                    const appDiv = document.createElement('div');
-                    appDiv.classList.add('app');
+        function showError(msg) {
+            acont.innerHTML = "";
+            errorMsg.textContent = msg || "Failed to load games.";
+            errorBox.style.display = "block";
+        }
 
-                    appDiv.innerHTML = `
-                    <div class="app-img" style="background: url('${app.image}');" onclick="window.location.href = '/pages/play.html?launch=${app.url}&name=${app.name}&img=${app.image}'"></div>
-                        <div class="title">
+        function hideError() {
+            errorBox.style.display = "none";
+        }
+
+        // Fetch JSON with timeout + cache
+        async function getJson(path) {
+            // Check session cache first
+            const cacheKey = "mochii_games_cache_" + path;
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+                try { return JSON.parse(cached); } catch (_) { /* stale, re-fetch */ }
+            }
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+
+            try {
+                const res = await fetch(path, { signal: controller.signal });
+                clearTimeout(timeout);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                sessionStorage.setItem(cacheKey, JSON.stringify(data));
+                return data;
+            } catch (e) {
+                clearTimeout(timeout);
+                throw e;
+            }
+        }
+
+        // Lazy-load background images via IntersectionObserver
+        const bgObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const src = el.dataset.bg;
+                    if (src) el.style.background = `url('${src}') center/cover no-repeat`;
+                    bgObserver.unobserve(el);
+                }
+            });
+        }, { rootMargin: "200px" });
+
+        async function loadApps() {
+            hideError();
+            showSkeletons(12);
+
+            let data;
+            try {
+                data = await getJson('/assets/json/gn-math.json');
+            } catch (e) {
+                console.error("mochii: failed to load game list", e);
+                const isTimeout = e.name === "AbortError";
+                showError(isTimeout
+                    ? "Game list timed out. Check your connection and retry."
+                    : "Failed to load games. The server may be down.");
+                return;
+            }
+
+            if (!Array.isArray(data) || data.length === 0) {
+                showError("No games found in this store.");
+                return;
+            }
+
+            acont.innerHTML = "";
+
+            data.forEach(app => {
+                const appDiv = document.createElement('div');
+                appDiv.classList.add('app');
+
+                // Use data-bg for lazy loading instead of inline background
+                appDiv.innerHTML = `
+                    <div class="app-img" data-bg="${app.image}"
+                        onclick="window.location.href = '/pages/play.html?launch=${encodeURIComponent(app.url)}&name=${encodeURIComponent(app.name)}&img=${encodeURIComponent(app.image)}'">
+                    </div>
+                    <div class="title">
                         <h2 class="h2-title">${app.name}</h2>
                     </div>
-                    `;
+                `;
 
-                    acont.appendChild(appDiv);
-                });
-            })
+                acont.appendChild(appDiv);
+                bgObserver.observe(appDiv.querySelector(".app-img"));
+            });
         }
 
-        loadApps()
+        function retryLoad() {
+            // Clear cache so we actually re-fetch
+            Object.keys(sessionStorage)
+                .filter(k => k.startsWith("mochii_games_cache_"))
+                .forEach(k => sessionStorage.removeItem(k));
+            loadApps();
+        }
+
+        loadApps();
 
         function searchApps(q) {
             const apps = document.querySelectorAll('.app');
             apps.forEach(app => {
-                const title = app.querySelector('.h2-title').innerText.toLowerCase();
-                if (title.includes(q.toLowerCase())) {
-                    app.style.display = 'block';
-                } else {
-                    app.style.display = 'none';
-                }
+                const title = app.querySelector('.h2-title');
+                if (!title) return;
+                app.style.display = title.innerText.toLowerCase().includes(q.toLowerCase())
+                    ? 'block' : 'none';
             });
         }
     </script>
