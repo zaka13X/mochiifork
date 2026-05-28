@@ -876,70 +876,39 @@
             }
         }
 
-    function clearData() {
-        if (clearHolder.classList.contains("settings-hidden")) {
+function clearData() {
 
-            if (appsHolder.classList.contains("settings-shown")) {
-                toggleApps()
-            } else if (gamesHolder.classList.contains("settings-shown")) {
-                toggleGames()
-            } else if (partnerHolder.classList.contains("settings-shown")) {
-                togglePartners()
-            } else if (settingsHolder.classList.contains("settings-shown")) {
-                toggleSettings()
-            }
+    console.log("clearing local storage")
+    localStorage.clear()
 
-            const newBlurOverlay = document.createElement("div")
-            newBlurOverlay.classList.add("blurOverlay")
+    console.log("clearing session storage")
+    sessionStorage.clear()
 
-            document.body.appendChild(newBlurOverlay)
+    console.log("clearing cookies")
+    document.cookie.split(";").forEach(cookie => {
+        const eqPos = cookie.indexOf("=")
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
 
-            newBlurOverlay.addEventListener("click", () => {
-                clearData()
+        document.cookie =
+            name +
+            "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+    })
+
+    console.log("clearing indexedDB")
+    if (window.indexedDB && indexedDB.databases) {
+        indexedDB.databases().then(databases => {
+            databases.forEach(db => {
+                indexedDB.deleteDatabase(db.name)
             })
-
-            clearHolder.classList.remove("settings-hidden")
-            clearHolder.classList.add("settings-shown")
-
-            console.log("Clear data menu opened.")
-
-        } else {
-            localStorage.clear()
-            sessionStorage.clear()
-
-            document.cookie.split(";").forEach(cookie => {
-                const eqPos = cookie.indexOf("=")
-                const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
-
-                document.cookie =
-                    name +
-                    "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
-            })
-
-            if (window.indexedDB && indexedDB.databases) {
-                indexedDB.databases().then(databases => {
-                    databases.forEach(db => {
-                        indexedDB.deleteDatabase(db.name)
-                    })
-                })
-            }
-
-            clearHolder.classList.remove("settings-shown")
-            clearHolder.classList.add("settings-hidden")
-
-            const newBlurOverlay = document.querySelector(".blurOverlay")
-
-            if (newBlurOverlay) {
-                newBlurOverlay.remove()
-            }
-
-            console.log("all website data cleared.")
-
-            setTimeout(() => {
-                location.reload()
-            }, 500)
-        }
+        })
     }
+
+    console.log("all saved website data cleared.")
+
+    setTimeout(() => {
+        location.reload()
+    }, 500)
+}
 
         function toggleDownloadGames() {
             if (downloadHolder.classList.contains("settings-hidden")) {
