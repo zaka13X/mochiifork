@@ -18,8 +18,8 @@
 * [x] Movies
 * [x] Chatroom
 * [x] Game overlay
+* [x] Music
 * [ ] More Games
-* [ ] Music
 
 <hr>
 
