@@ -42,7 +42,7 @@ const splashes = [
   "very average",
   "who unplugged the internet",
   "mochii >>>>>",
-  "if i hear one more person mentioning&quot oh soem games dont work !1!1!1!1!1&quot imma slaughter u🤣",
+  "if i hear one more person mentioning<br>&quot oh soem games dont work !1!1!1!1!1&quot<br> imma slaughter u🤣",
   "kys",
   "knives, khel and confetti r the BEST artists oat prove me wrong",
   "100% organic",
