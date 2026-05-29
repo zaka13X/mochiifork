@@ -30,7 +30,7 @@
     <div id="homeContent">
         <h1 class="text-8xl text-[var(--bright-text)] font-bold">404</h1>
         <p class="text-[var(--text)]">not found.</p>
-        <p class="text-[var(--text)]">if this error is continuining, swap proxy service.</p>
+        <p class="text-[var(--text)]">if this error is continuining, swap proxy service <br>or <a href="#", onclick="clearData()">clear data</a></p>
         <p class="text-[var(--text)]">if error persists, report in the <a href="https://discord.gg/eaDbdxfUj">discord</a></p>
         <br>
         <a href="/" class="text-[var(--text)] opacity-50 underline underline-offset-3 hover:opacity-100 transition-all">back home</a>
@@ -58,6 +58,40 @@
     <iframe id="contentFrame"></iframe>
 
     <script>
+    function clearData() {
+
+        console.log("clearing local storage")
+        localStorage.clear()
+
+        console.log("clearing session storage")
+        sessionStorage.clear()
+
+        console.log("clearing cookies")
+        document.cookie.split(";").forEach(cookie => {
+            const eqPos = cookie.indexOf("=")
+            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+
+            document.cookie =
+                name +
+                "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+        })
+
+        console.log("clearing indexedDB")
+        if (window.indexedDB && indexedDB.databases) {
+            indexedDB.databases().then(databases => {
+                databases.forEach(db => {
+                    indexedDB.deleteDatabase(db.name)
+                })
+            })
+        }
+
+        console.log("all saved website data cleared.")
+
+        setTimeout(() => {
+            location.reload()
+        }, 500)
+    }
+
         async function registerSW() {
             if ("serviceWorker" in navigator) {
                 await navigator.serviceWorker.register("/uv/sw.js").then(() => {
