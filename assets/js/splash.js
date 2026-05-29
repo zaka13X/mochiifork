@@ -28,7 +28,7 @@ const splashes = [
   "&quot;Meow like&quot; - contritewing",
   "the f students are NOT inventors twin",
   "the way you read this is so tuff twin",
-  "<a href='discord.gg/eaDbdxfUj'>join corx</a> twin✌️",
+  "<a href='https://discord.gg/eaDbdxfUj'>join corx</a> twin✌️",
   "<!DOCTYPE javascript>",
   "moar",
   "doot doot",
