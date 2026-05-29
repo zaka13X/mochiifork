@@ -60,7 +60,7 @@ function newTab() {
   tabElement.innerHTML = `
         <img src="/assets/img/fav.png" id="fav" data-fav-id="${nTab.id}" width="24" alt="">
             <span>
-                New Tab
+                new tab
             </span>
         <i class="fas fa-times close-btn"></i>
         `;
@@ -110,7 +110,7 @@ function switchTab(tId) {
 
 function closeTab(tId) {
   if (bTabs.length === 1) {
-    showToast("error", "Cannot close last tab!", "fas fa-circle-xmark");
+    showToast("error", "cannot close last tab!", "fas fa-circle-xmark");
     return;
   }
 
