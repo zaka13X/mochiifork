@@ -1274,20 +1274,50 @@ function clearData() {
             })
         }
 
-        async function getActiveUsers() {
-            const endpoint = "https://api.x8r.dev/api/umami"
-            const res = await fetch(endpoint)
-            const data = await res.json()
+        const visitorEndpoint = "https://mochiii.verxateam.workers.dev/"
 
-            console.log("CURRENT VISITORS:" + data.visitors)
-            document.getElementById("user-count").textContent = data.visitors
+        function getVisitorSessionId() {
+            const key = "mochii_visitor_session"
+            let id = localStorage.getItem(key)
+
+            if (!id) {
+                id = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+                localStorage.setItem(key, id)
+            }
+
+            return id
+        }
+
+        async function getActiveUsers() {
+            try {
+                const endpoint = new URL("ping", visitorEndpoint)
+                const res = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        sessionId: getVisitorSessionId()
+                    })
+                })
+
+                if (!res.ok) throw new Error(`Visitor API returned ${res.status}`)
+
+                const data = await res.json()
+                const visitors = Number(data.visitors) || 0
+
+                console.log("CURRENT VISITORS:" + visitors)
+                document.getElementById("user-count").textContent = visitors
+            } catch (err) {
+                console.warn("Failed to update visitor count:", err)
+            }
         }
 
         getActiveUsers()
 
         setInterval(() => {
             getActiveUsers()
-        }, 30000)
+        }, 20000)
 
         function setWisp(i) {
             if (!i) return
