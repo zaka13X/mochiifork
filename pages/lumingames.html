@@ -221,19 +221,9 @@
             setStatus("Loading LuminSDK...");
 
             try {
-                await window.MochiiLumin.init("#lumin-games", {
-                    theme: "dark",
-                    columns: 10,
-                    rows: 4,
-                    gamesPerPage: 40,
-                    onReady: () => setStatus(""),
-                    onGameStart: (game) => {
-                        document.title = `mochii | ${game?.name || "game"}`;
-                    },
-                    onGameEnd: () => {
-                        document.title = "mochii | LuminSDK games";
-                    },
-                    onError: showLuminError,
+                  Lumin.init({
+                    container: '#lumin-games',
+                    theme: 'dark'
                 });
             } catch (error) {
                 showLuminError(error);
