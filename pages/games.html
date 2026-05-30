@@ -366,7 +366,7 @@
         const errorMsg = document.getElementById("games-error-msg");
         const luminContainer = document.getElementById("lumin-games");
         const luminLoading = document.getElementById("lumin-loading");
-        const selectedStore = localStorage.getItem("cherri_gameStore") || "GN-Math";
+        let selectedStore = localStorage.getItem("cherri_gameStore") || "GN-Math";
 
         // Show skeleton placeholders while loading
         function showSkeletons(count = 12) {
@@ -392,6 +392,22 @@
             luminLoading.classList.toggle("visible", isLoading);
         }
 
+        function fallbackFromLumin(error) {
+            const friendly = window.MochiiLumin?.friendlyError
+                ? window.MochiiLumin.friendlyError(error)
+                : error;
+            const message = friendly?.message || "LuminSDK failed to load.";
+
+            console.warn("mochii: LuminSDK failed, falling back to GN-Math", friendly);
+            selectedStore = "GN-Math";
+            localStorage.setItem("cherri_gameStore", "GN-Math");
+            document.body.classList.remove("lumin-store");
+            luminContainer.classList.remove("active");
+            setLuminLoading(false);
+            showError(`${message} Loading GN-Math instead...`);
+            setTimeout(loadLocalGames, 900);
+        }
+
         async function loadLuminGames() {
             document.body.classList.add("lumin-store");
             hideError();
@@ -406,14 +422,10 @@
                     rows: 4,
                     gamesPerPage: 32,
                     onReady: () => setLuminLoading(false),
-                    onError: (error) => {
-                        setLuminLoading(false);
-                        showError(error?.message || "LuminSDK failed to load.");
-                    },
+                    onError: fallbackFromLumin,
                 });
             } catch (error) {
-                setLuminLoading(false);
-                showError(error?.message || "LuminSDK failed to load.");
+                fallbackFromLumin(error);
             }
         }
 
@@ -454,13 +466,10 @@
             });
         }, { rootMargin: "200px" });
 
-        async function loadApps() {
-            if (selectedStore.toLowerCase() === "luminsdk") {
-                loadLuminGames();
-                return;
-            }
-
+        async function loadLocalGames() {
             hideError();
+            document.body.classList.remove("lumin-store");
+            luminContainer.classList.remove("active");
             showSkeletons(12);
 
             let data;
@@ -500,6 +509,15 @@
                 acont.appendChild(appDiv);
                 bgObserver.observe(appDiv.querySelector(".app-img"));
             });
+        }
+
+        async function loadApps() {
+            if (selectedStore.toLowerCase() === "luminsdk") {
+                loadLuminGames();
+                return;
+            }
+
+            loadLocalGames();
         }
 
         function retryLoad() {

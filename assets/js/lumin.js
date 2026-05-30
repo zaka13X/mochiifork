@@ -94,6 +94,26 @@
     window.dispatchEvent(new CustomEvent(`mochii:lumin:${name}`, { detail }));
   }
 
+  function friendlyError(error) {
+    const rawMessage =
+      error?.message || (typeof error === "string" ? error : "");
+    const message = rawMessage || "LuminSDK failed to load.";
+
+    if (/domain fetch failed/i.test(message)) {
+      return new Error(
+        "LuminSDK could not fetch data for this domain. This can happen on localhost, preview URLs, blocked networks, or domains the SDK backend cannot verify."
+      );
+    }
+
+    if (/failed to fetch|networkerror|load failed/i.test(message)) {
+      return new Error(
+        "LuminSDK could not reach its game servers. Check the network, filters, or try again after deploying."
+      );
+    }
+
+    return error instanceof Error ? error : new Error(message);
+  }
+
   function destroy() {
     if (window.Lumin && typeof window.Lumin.destroy === "function") {
       try {
@@ -113,6 +133,7 @@
       throw new Error("LuminSDK init method is unavailable.");
     }
 
+    const userOnError = options?.onError;
     const config = {
       container: target,
       theme: "dark",
@@ -123,9 +144,19 @@
       showCategories: true,
       showRandom: true,
       ...(options || {}),
+      onError: (error) => {
+        const friendly = friendlyError(error);
+        emit("error", { error: friendly });
+        if (typeof userOnError === "function") userOnError(friendly);
+      },
     };
 
-    await Lumin.init(config);
+    try {
+      await Lumin.init(config);
+    } catch (error) {
+      throw friendlyError(error);
+    }
+
     target.dataset.mochiiLuminMounted = "true";
     emit("ready", { container: target });
 
@@ -136,6 +167,7 @@
     init,
     destroy,
     loadSdk,
+    friendlyError,
     source: LUMIN_SDK_SRC,
   };
 })();

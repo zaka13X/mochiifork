@@ -143,6 +143,11 @@
             cursor: pointer;
         }
 
+        .lumin-error-panel button + button {
+            margin-left: 8px;
+            background: var(--bg-3);
+        }
+
         @media (max-width: 700px) {
             .lumin-page {
                 padding: 10px;
@@ -184,6 +189,7 @@
                     <h2>LuminSDK did not load</h2>
                     <p id="lumin-error-message">Check your connection and try again.</p>
                     <button type="button" id="lumin-retry">Retry</button>
+                    <button type="button" id="lumin-local-games">Open GN-Math</button>
                 </div>
             </div>
             <div id="lumin-games"></div>
@@ -201,7 +207,10 @@
         }
 
         function showLuminError(error) {
-            const message = error?.message || "Check your connection and try again.";
+            const friendly = window.MochiiLumin?.friendlyError
+                ? window.MochiiLumin.friendlyError(error)
+                : error;
+            const message = friendly?.message || "Check your connection and try again.";
             setStatus("");
             errorMessageEl.textContent = message;
             errorEl.classList.add("visible");
@@ -245,6 +254,10 @@
         });
 
         document.getElementById("lumin-retry").addEventListener("click", startLumin);
+        document.getElementById("lumin-local-games").addEventListener("click", () => {
+            localStorage.setItem("cherri_gameStore", "GN-Math");
+            window.location.href = "/pages/games.html";
+        });
 
         document.addEventListener("DOMContentLoaded", startLumin);
     </script>

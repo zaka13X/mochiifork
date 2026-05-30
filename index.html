@@ -727,9 +727,15 @@
             return freshMount
         }
 
+        let luminFallbackTimer = null
+
         async function loadLuminLibrary() {
             setGamesLibraryMode("luminsdk")
             setLuminStatus("loading LuminSDK...")
+            if (luminFallbackTimer) {
+                clearTimeout(luminFallbackTimer)
+                luminFallbackTimer = null
+            }
 
             try {
                 await window.MochiiLumin.init(getFreshLuminMount(), {
@@ -738,13 +744,36 @@
                     rows: 4,
                     gamesPerPage: 32,
                     onReady: () => setLuminStatus(""),
-                    onError: (error) => {
-                        setLuminStatus(error?.message || "LuminSDK failed to load.", true)
-                    },
+                    onError: fallbackFromLumin,
                 })
             } catch (error) {
-                setLuminStatus(error?.message || "LuminSDK failed to load.", true)
+                fallbackFromLumin(error)
             }
+        }
+
+        function fallbackFromLumin(error) {
+            if (luminFallbackTimer) return
+
+            const friendly = window.MochiiLumin?.friendlyError
+                ? window.MochiiLumin.friendlyError(error)
+                : error
+            const message = friendly?.message || "LuminSDK failed to load."
+
+            console.warn("mochii: LuminSDK failed, falling back to GN-Math", friendly)
+            setLuminStatus(`${message} Falling back to GN-Math...`, true)
+            localStorage.setItem("cherri_gameStore", "GN-Math")
+
+            const storeSelected = document.querySelector(".store-selected")
+            if (storeSelected) storeSelected.textContent = "GN-Math"
+
+            if (typeof showToast === "function") {
+                showToast("error", "LuminSDK failed, using GN-Math.", "times-circle")
+            }
+
+            luminFallbackTimer = setTimeout(() => {
+                luminFallbackTimer = null
+                loadGameLibrary("GN-Math")
+            }, 900)
         }
 
         function loadGameLibrary(storeName = "GN-Math") {
