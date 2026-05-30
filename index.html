@@ -58,7 +58,6 @@
         data-website-id="aa852720-724b-4441-be4c-6db9ef160eb9"></script>
     <link rel="stylesheet" href="/assets/css/font.css">
     <link rel="stylesheet" href="/assets/icons/fonts/remixicon.css">
-    <!-- could import lumin here  -->
     <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
@@ -311,8 +310,9 @@
                     </div>
                     <br><br>
                     <h2>luminsdk</h2>
-                    <p>go to lumingames instead - will be implemented <br>as a game library soon</p>
-                    <button class="button" style="margin-left: 0;" onclick=window.location.href="pages/lumingames.html">go!</button>
+                    <p>use LuminSDK as the game library, or open it full page.</p>
+                    <button class="button" style="margin-left: 0;" onclick="setLuminStore()">use library</button>
+                    <button class="button" onclick="window.location.href='pages/lumingames.html'">open page</button>
                     <br><br><br>
                     <h2>game overlay</h2>
                     <p>enable or disable the game overlay, which provides useful tools while gaming such as a browser,
@@ -592,13 +592,15 @@
 
     <div class="games-wrapper settings-hidden">
         <input onkeyup="searchApps(this.value)" type="text" style="font-family: Arial;"
-            placeholder="search through the games...                                                   if games dont load go to settings ->  gaming ->  luminsdk" id="apps-search"
+            placeholder="search through the games..." id="apps-search"
             class="h-fit p-4 px-5 w-[975px] bg-[var(--bg-2)] border-none absolute left-1/2 translate-x-[-50%] rounded-2xl transition-all focus:bg-[var(--bg-3)] focus:outline-none ">
         <br><br><br>
         <div
             class="games-container h-[83%] overflow-y-scroll w-[475px] flex flex-wrap w-7/8 absolute left-1/2 translate-x-[-50%] justify-center">
             <br>
         </div>
+        <div id="lumin-index-status" class="lumin-index-status"></div>
+        <div id="lumin-games-container" class="lumin-embed-container"></div>
         <br>
     </div>
 
@@ -634,6 +636,7 @@
     <cherriattr version="s1.1.1"></cherriattr>
 
     <script src="/assets/js/dropdown.js"></script>
+    <script src="/assets/js/lumin.js"></script>
     <script>
         const pjsOn = localStorage.getItem("cherri_particlesOn") ?? "yes"
 
@@ -648,12 +651,9 @@
     <script>
         const selectedStore = localStorage.getItem("cherri_gameStore") ?? "GN-Math"
 
-        let res
-        let data
-
         async function gj(file) {
-            res = await fetch(`/assets/json/${file}.json`);
-            data = await res.json()
+            const res = await fetch(`/assets/json/${file}.json`);
+            return await res.json()
         }
 
         // welcome to my super bad json loader
@@ -661,14 +661,15 @@
         // 0.25 hour(s)
 
         function load(file, type, functionName, toRun, additions) {
-            gj(file).then(() => {
+            gj(file).then((items) => {
                 console.log(
                     "%ccherri" + "%c recieved json data!",
                     "color: white; background: linear-gradient(to bottom right, #040c16, #000000); border-radius: 5px; font-weight: bold; padding: 6px; font-family: sans-serif;",
                     "color: white; background: transparent; border-radius: 0px; padding: 0px;"
                 )
-            }).then(() => {
-                data.forEach(item => {
+                return items
+            }).then((items) => {
+                items.forEach(item => {
                     const aCont = document.querySelector(`.${type}-container`)
                     const newAppContainer = document.createElement("div")
 
@@ -702,17 +703,90 @@
             document.querySelectorAll(".bg-img[data-bg]").forEach(el => bgO.observe(el))
         }
 
+        function setLuminStatus(message, isError = false) {
+            const status = document.getElementById("lumin-index-status")
+            if (!status) return
+
+            status.textContent = message || ""
+            status.classList.toggle("visible", Boolean(message))
+            status.classList.toggle("error", isError)
+        }
+
+        function setGamesLibraryMode(storeName) {
+            const gamesWrapper = document.querySelector(".games-wrapper")
+            const isLumin = String(storeName || "").toLowerCase() === "luminsdk"
+
+            gamesWrapper?.classList.toggle("lumin-active", isLumin)
+            if (!isLumin) setLuminStatus("")
+        }
+
+        function getFreshLuminMount() {
+            const mount = document.getElementById("lumin-games-container")
+            const freshMount = mount.cloneNode(false)
+            mount.replaceWith(freshMount)
+            return freshMount
+        }
+
+        async function loadLuminLibrary() {
+            setGamesLibraryMode("luminsdk")
+            setLuminStatus("loading LuminSDK...")
+
+            try {
+                await window.MochiiLumin.init(getFreshLuminMount(), {
+                    theme: "dark",
+                    columns: 8,
+                    rows: 4,
+                    gamesPerPage: 32,
+                    onReady: () => setLuminStatus(""),
+                    onError: (error) => {
+                        setLuminStatus(error?.message || "LuminSDK failed to load.", true)
+                    },
+                })
+            } catch (error) {
+                setLuminStatus(error?.message || "LuminSDK failed to load.", true)
+            }
+        }
+
+        function loadGameLibrary(storeName = "GN-Math") {
+            const normalizedStore = String(storeName || "GN-Math").toLowerCase()
+            const container = document.querySelector(".games-container")
+
+            if (window.MochiiLumin) window.MochiiLumin.destroy()
+            if (container) container.innerHTML = ""
+
+            if (normalizedStore === "luminsdk") {
+                loadLuminLibrary()
+                return
+            }
+
+            setGamesLibraryMode(normalizedStore)
+            load(normalizedStore, "games", "Games", "navTo", "play.html?launch=")
+        }
+
+        function setLuminStore() {
+            localStorage.setItem("cherri_gameStore", "LuminSDK")
+
+            const storeSelected = document.querySelector(".store-selected")
+            if (storeSelected) storeSelected.textContent = "LuminSDK"
+
+            document.dispatchEvent(
+                new CustomEvent("storeUpdated", {
+                    detail: "LuminSDK",
+                })
+            )
+
+            if (typeof showToast === "function") {
+                showToast("success", "LuminSDK selected!", "check-circle")
+            }
+        }
+
         load("apps", "apps", "Apps", "rSearch", "")
-        load(selectedStore.toLowerCase(), "games", "Games", "navTo", "play.html?launch=")
+        loadGameLibrary(selectedStore)
 
         document.addEventListener("DOMContentLoaded", observe)
 
         document.addEventListener("storeUpdated", (e) => {
-            const newStore = e.detail.toLowerCase()
-            const container = document.querySelector(".games-container")
-
-            container.innerHTML = ''
-            load(newStore, "games", "Games", "navTo", "play.html?launch=")
+            loadGameLibrary(e.detail)
         })
 
         function searchApps(term) {

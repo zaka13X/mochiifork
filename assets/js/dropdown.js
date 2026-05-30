@@ -180,7 +180,7 @@ const allThemeOptions = [
   "violet",
 ];
 
-const allStoreOptions = ["GN-Math"];
+const allStoreOptions = ["GN-Math", "Lumin"];
 
 function createSelector(
   selectorType,

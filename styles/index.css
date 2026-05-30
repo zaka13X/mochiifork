@@ -641,6 +641,52 @@ p a:hover {
     width: 975px;
 }
 
+.lumin-embed-container {
+    display: none;
+    position: absolute;
+    inset: 15px;
+    width: calc(100% - 30px);
+    height: calc(100% - 30px);
+    overflow: hidden;
+    border-radius: 18px;
+}
+
+.lumin-index-status {
+    display: none;
+    position: absolute;
+    inset: 15px;
+    z-index: 2;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--bg) 70%, transparent 30%);
+    color: var(--bright-text);
+    pointer-events: none;
+}
+
+.lumin-index-status.visible {
+    display: flex;
+}
+
+.lumin-index-status.error {
+    color: #ffb4b4;
+}
+
+.games-wrapper.lumin-active {
+    width: min(1120px, calc(100vw - 32px));
+    height: min(82vh, 780px);
+}
+
+.games-wrapper.lumin-active input,
+.games-wrapper.lumin-active .games-container {
+    display: none !important;
+}
+
+.games-wrapper.lumin-active .lumin-embed-container {
+    display: block;
+}
+
 .apps-container::-webkit-scrollbar,
 .games-container::-webkit-scrollbar {
     scrollbar-width: thin;

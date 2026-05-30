@@ -1,23 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
-    <style>body {background-color: black;}</style>
-</head>
-<body>
-<div id="games"></div>
+    <title>mochii | LuminSDK games</title>
+    <link rel="shortcut icon" href="/assets/img/fav.png" type="image/x-icon" id="tabIcon">
+    <link rel="stylesheet" href="/assets/css/colors.css" id="css-theme-link">
+    <link rel="stylesheet" href="/assets/css/elements.css">
+    <link rel="stylesheet" href="/assets/css/font.css">
+    <link rel="stylesheet" href="/assets/icons/fonts/remixicon.css">
+    <script src="/assets/js/colors.js"></script>
+    <script src="/assets/js/lumin.js" defer></script>
+    <style>
+        html,
+        body {
+            min-height: 100%;
+            margin: 0;
+            background: var(--bg);
+            color: var(--bright-text);
+            overflow: hidden;
+        }
 
-<script src="https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js"></script>
-<script>
-Lumin.init({
-  container: '#games',
-  theme: 'auto',
-  columns: 12,
-  rows: 7,
-  gamesPerPage: 36,
-});
-</script>
+        .lumin-page {
+            min-height: 100vh;
+            padding: 18px;
+            box-sizing: border-box;
+        }
+
+        .lumin-toolbar {
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .lumin-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .lumin-title i {
+            color: var(--accent);
+            font-size: 25px;
+        }
+
+        .lumin-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lumin-actions button {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--border-4);
+            border-radius: 12px;
+            background: var(--bg-2);
+            color: var(--bright-text);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .lumin-actions button:hover {
+            background: var(--bg-3);
+            border-color: var(--border-3);
+        }
+
+        .lumin-actions i {
+            font-size: 20px;
+        }
+
+        .lumin-frame {
+            position: relative;
+            height: calc(100vh - 88px);
+            width: 100%;
+            overflow: hidden;
+            border-radius: 18px;
+            background: color-mix(in srgb, var(--bg-2) 72%, transparent 28%);
+            border: 1px solid var(--border-4);
+        }
+
+        #lumin-games {
+            width: 100%;
+            height: 100%;
+        }
+
+        .lumin-status,
+        .lumin-error {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 2;
+            padding: 24px;
+            box-sizing: border-box;
+            background: color-mix(in srgb, var(--bg) 70%, transparent 30%);
+            color: var(--bright-text);
+        }
+
+        .lumin-status.hidden,
+        .lumin-error {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .lumin-error.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lumin-error-panel {
+            max-width: 390px;
+        }
+
+        .lumin-error-panel h2 {
+            margin: 0 0 8px;
+            font-size: 22px;
+        }
+
+        .lumin-error-panel p {
+            margin: 0 0 18px;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .lumin-error-panel button {
+            padding: 10px 18px;
+            border: 0;
+            border-radius: 10px;
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+        }
+
+        @media (max-width: 700px) {
+            .lumin-page {
+                padding: 10px;
+            }
+
+            .lumin-title {
+                font-size: 18px;
+            }
+
+            .lumin-frame {
+                height: calc(100vh - 72px);
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="lumin-page">
+        <div class="lumin-toolbar">
+            <div class="lumin-title">
+                <i class="ri-gamepad-line"></i>
+                <span>LuminSDK</span>
+            </div>
+            <div class="lumin-actions">
+                <button type="button" id="lumin-back" title="Back" aria-label="Back">
+                    <i class="ri-arrow-left-line"></i>
+                </button>
+                <button type="button" id="lumin-refresh" title="Refresh" aria-label="Refresh">
+                    <i class="ri-restart-line"></i>
+                </button>
+            </div>
+        </div>
+
+        <section class="lumin-frame" aria-label="LuminSDK games">
+            <div id="lumin-status" class="lumin-status">Loading LuminSDK...</div>
+            <div id="lumin-error" class="lumin-error">
+                <div class="lumin-error-panel">
+                    <h2>LuminSDK did not load</h2>
+                    <p id="lumin-error-message">Check your connection and try again.</p>
+                    <button type="button" id="lumin-retry">Retry</button>
+                </div>
+            </div>
+            <div id="lumin-games"></div>
+        </section>
+    </main>
+
+    <script>
+        const statusEl = document.getElementById("lumin-status");
+        const errorEl = document.getElementById("lumin-error");
+        const errorMessageEl = document.getElementById("lumin-error-message");
+
+        function setStatus(message) {
+            statusEl.textContent = message || "";
+            statusEl.classList.toggle("hidden", !message);
+        }
+
+        function showLuminError(error) {
+            const message = error?.message || "Check your connection and try again.";
+            setStatus("");
+            errorMessageEl.textContent = message;
+            errorEl.classList.add("visible");
+        }
+
+        async function startLumin() {
+            errorEl.classList.remove("visible");
+            setStatus("Loading LuminSDK...");
+
+            try {
+                await window.MochiiLumin.init("#lumin-games", {
+                    theme: "dark",
+                    columns: 10,
+                    rows: 4,
+                    gamesPerPage: 40,
+                    onReady: () => setStatus(""),
+                    onGameStart: (game) => {
+                        document.title = `mochii | ${game?.name || "game"}`;
+                    },
+                    onGameEnd: () => {
+                        document.title = "mochii | LuminSDK games";
+                    },
+                    onError: showLuminError,
+                });
+            } catch (error) {
+                showLuminError(error);
+            }
+        }
+
+        document.getElementById("lumin-back").addEventListener("click", () => {
+            if (history.length > 1) {
+                history.back();
+            } else {
+                window.location.href = "/";
+            }
+        });
+
+        document.getElementById("lumin-refresh").addEventListener("click", () => {
+            window.MochiiLumin.destroy();
+            startLumin();
+        });
+
+        document.getElementById("lumin-retry").addEventListener("click", startLumin);
+
+        document.addEventListener("DOMContentLoaded", startLumin);
+    </script>
 </body>
+
 </html>

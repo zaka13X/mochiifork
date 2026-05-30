@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/assets/icons/fonts/remixicon.css">
     <script src="/assets/js/lib/particles.js"></script>
     <script src="/assets/js/colors.js"></script>
+    <script src="/assets/js/lumin.js"></script>
 </head>
 
 <body>
@@ -268,6 +269,42 @@
             font-size: 14px;
         }
         #games-error button:hover { opacity: 0.85; }
+
+        #lumin-games {
+            display: none;
+            position: absolute;
+            top: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(1180px, calc(100vw - 28px));
+            height: calc(100vh - 175px);
+            overflow: hidden;
+            border-radius: 18px;
+            z-index: 1;
+        }
+
+        #lumin-games.active {
+            display: block;
+        }
+
+        #lumin-loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--bright-text);
+            z-index: 5;
+        }
+
+        #lumin-loading.visible {
+            display: block;
+        }
+
+        body.lumin-store .hcenter input,
+        body.lumin-store .apps-container {
+            display: none;
+        }
     </style>
 
     <div id="particles-container"></div>
@@ -281,6 +318,9 @@
         <p id="games-error-msg">Failed to load games.</p>
         <button onclick="retryLoad()">↺ Retry</button>
     </div>
+
+    <div id="lumin-loading">loading LuminSDK...</div>
+    <div id="lumin-games"></div>
 
     <div class="apps-container hcenter" style="top: 200px;">
     </div>
@@ -324,6 +364,9 @@
         const acont = document.querySelector('.apps-container');
         const errorBox = document.getElementById("games-error");
         const errorMsg = document.getElementById("games-error-msg");
+        const luminContainer = document.getElementById("lumin-games");
+        const luminLoading = document.getElementById("lumin-loading");
+        const selectedStore = localStorage.getItem("cherri_gameStore") || "GN-Math";
 
         // Show skeleton placeholders while loading
         function showSkeletons(count = 12) {
@@ -343,6 +386,35 @@
 
         function hideError() {
             errorBox.style.display = "none";
+        }
+
+        function setLuminLoading(isLoading) {
+            luminLoading.classList.toggle("visible", isLoading);
+        }
+
+        async function loadLuminGames() {
+            document.body.classList.add("lumin-store");
+            hideError();
+            acont.innerHTML = "";
+            luminContainer.classList.add("active");
+            setLuminLoading(true);
+
+            try {
+                await window.MochiiLumin.init("#lumin-games", {
+                    theme: "dark",
+                    columns: 8,
+                    rows: 4,
+                    gamesPerPage: 32,
+                    onReady: () => setLuminLoading(false),
+                    onError: (error) => {
+                        setLuminLoading(false);
+                        showError(error?.message || "LuminSDK failed to load.");
+                    },
+                });
+            } catch (error) {
+                setLuminLoading(false);
+                showError(error?.message || "LuminSDK failed to load.");
+            }
         }
 
         // Fetch JSON with timeout + cache
@@ -383,6 +455,11 @@
         }, { rootMargin: "200px" });
 
         async function loadApps() {
+            if (selectedStore.toLowerCase() === "luminsdk") {
+                loadLuminGames();
+                return;
+            }
+
             hideError();
             showSkeletons(12);
 
@@ -406,13 +483,14 @@
             acont.innerHTML = "";
 
             data.forEach(app => {
+                const image = app.img || app.image;
                 const appDiv = document.createElement('div');
                 appDiv.classList.add('app');
 
                 // Use data-bg for lazy loading instead of inline background
                 appDiv.innerHTML = `
-                    <div class="app-img" data-bg="${app.image}"
-                        onclick="window.location.href = '/pages/play.html?launch=${encodeURIComponent(app.url)}&name=${encodeURIComponent(app.name)}&img=${encodeURIComponent(app.image)}'">
+                    <div class="app-img" data-bg="${image}"
+                        onclick="window.location.href = '/pages/play.html?launch=${encodeURIComponent(app.url)}&name=${encodeURIComponent(app.name)}&img=${encodeURIComponent(image)}'">
                     </div>
                     <div class="title">
                         <h2 class="h2-title">${app.name}</h2>
