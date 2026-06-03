@@ -50,6 +50,7 @@
     span {
         font-family: Arial;
     }
+.warned { border-bottom: 2px solid red; }
 </style>
 
 <body class=" text-[var(--text)] min-h-screen p-8" x-data="app()">
@@ -117,10 +118,10 @@
                 <h3 class="text-xl font-semibold mb-4">Sources</h3>
                 <div class="flex flex-wrap gap-2">
                     <template x-for="source in availableSources" :key="source.id">
-                        <button @click="selectedSource = source.id; updateVideoUrl()" class="transition-all px-4 py-2 rounded-2xl"
-                            :class="selectedSource === source.id ? 'bg-[var(--accent)] text-[var(--text)]' : 'bg-[var(--bg-2)]'"
-                            x-text="source.name">
-                        </button>
+<button @click="selectedSource = source.id; updateVideoUrl()" class="transition-all px-4 py-2 rounded-2xl"
+    :class="selectedSource === source.id ? 'bg-[var(--accent)] text-[var(--text)]' : (source.failed ? 'bg-[var(--bg-2)] warned' : 'bg-[var(--bg-2)]')"
+    x-text="source.name">
+</button>
                     </template>
                 </div>
             </div>
