@@ -118,7 +118,7 @@ function closeAllSelectors() {
         "cloak-link-arrow-active",
         "wisp-arrow-active",
         "theme-arrow-active",
-        "store-show"
+        "store-arrow-active"
       )
     );
 }
@@ -154,11 +154,15 @@ const allDecoyOptions = [
 const wispPresets = {
   rhw: { url: "wss://wisp.rhw.one/" },
   mochiii: { url: "wss://mochiiibackend.share.zrok.io/wisp/" },
+  mercury: { url: "wss://wisp.mercurywork.shop/" },
+  anura: { url: "wss://anura.pro/wisp/" },
 };
 
 const allWispOptions = [
   "rhw",
   "mochiii",
+  "mercury",
+  "anura",
 ];
 
 const allThemeOptions = [
@@ -180,7 +184,7 @@ const allThemeOptions = [
   "violet",
 ];
 
-const allStoreOptions = ["GN-Math"];
+const allStoreOptions = ["GN-Math", "LuminSDK", "Game Portals", "Featured Classics"];
 
 function createSelector(
   selectorType,

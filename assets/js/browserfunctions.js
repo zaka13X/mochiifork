@@ -2,8 +2,13 @@ let aTab = 0;
 let tabCounter = 1;
 let bTabs = [];
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
-// const wispUrl = localStorage.getItem("cherri_wispUrl") || "wss://wisp.rhw.one/";
-const wispUrl = localStorage.getItem("cherri_wispUrl") || "wss://mochiiibackend.share.zrok.io/wisp/";
+const DEFAULT_WISP_URL = "wss://mochiiibackend.share.zrok.io/wisp/";
+const WISP_FALLBACKS = [
+  DEFAULT_WISP_URL,
+  "wss://wisp.rhw.one/",
+  "wss://wisp.mercurywork.shop/",
+  "wss://anura.pro/wisp/",
+];
 const bareUrl = "https://useclassplay.vercel.app/fq/";
 
 let searchE;
@@ -23,7 +28,44 @@ if (se === "DuckDuckGo") {
   searchE = "https://search.brave.com/search?q=";
 }
 
-connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
+function normalizeWispUrl(url) {
+  const value = (url || DEFAULT_WISP_URL).trim();
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+function getWispCandidates() {
+  const saved = normalizeWispUrl(localStorage.getItem("cherri_wispUrl"));
+  return [saved, ...WISP_FALLBACKS.map(normalizeWispUrl)].filter(
+    (url, index, all) => all.indexOf(url) === index
+  );
+}
+
+function normalizeBackend(value) {
+  const backend = (value || "Scramjet").toLowerCase();
+  if (backend === "ultraviolet" || backend === "uv") return "ultraviolet";
+  return "scramjet";
+}
+
+async function configureTransport() {
+  let lastError;
+
+  for (const url of getWispCandidates()) {
+    try {
+      await connection.setTransport("/libcurl/index.mjs", [{ websocket: url }]);
+      localStorage.setItem("cherri_wispUrl", url);
+      return url;
+    } catch (error) {
+      lastError = error;
+      console.warn("mochii: failed to set Wisp transport, trying next:", url, error);
+    }
+  }
+
+  throw lastError || new Error("No Wisp transports are available.");
+}
+
+const transportReady = configureTransport().catch((error) => {
+  console.error("mochii: initial proxy transport failed:", error);
+});
 
 const CONFIG = {
   files: {
@@ -155,13 +197,10 @@ function nav(i) {
 
   cTab.url = url;
 
-  if (
-    localStorage.getItem("cherri_backend") === "Scramjet" ||
-    localStorage.getItem("cherri_backend") === "scramjet" ||
-    !localStorage.getItem("cherri_backend")
-  ) {
+  const backend = normalizeBackend(localStorage.getItem("cherri_backend"));
+  if (backend === "scramjet") {
     fUrl = scramjet.encodeUrl(url);
-  } else if (localStorage.getItem("cherri_backend") === "Ultraviolet") {
+  } else if (backend === "ultraviolet") {
     fUrl = "/uv/service/" + __uv$config.encodeUrl(url);
   } else {
     fUrl = scramjet.encodeUrl(url);
@@ -178,7 +217,7 @@ function updateUrlFromIframe(viewframe) {
     let decodedUrl;
     const currentSrc = viewframe.src;
 
-    if (localStorage.getItem("cherri_backend") === "Ultraviolet") {
+    if (normalizeBackend(localStorage.getItem("cherri_backend")) === "ultraviolet") {
       if (currentSrc.includes("/uv/service/")) {
         decodedUrl = __uv$config.decodeUrl(currentSrc.split("/uv/service/")[1]);
       }
@@ -202,8 +241,15 @@ function updateUrlFromIframe(viewframe) {
 }
 
 async function go(u) {
-  if (!(await connection.getTransport())) {
-    connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
+  await transportReady;
+
+  try {
+    if (!(await connection.getTransport())) {
+      await configureTransport();
+    }
+  } catch (error) {
+    console.warn("mochii: proxy transport check failed; resetting transport", error);
+    await configureTransport();
   }
 
   console.log("a");
@@ -273,10 +319,10 @@ function b() {
   const u = cTab.history[cTab.historyIndex];
   cTab.url = u;
   let furl;
-  const ba = localStorage.getItem("cherri_backend");
-  if (ba.toLowerCase() === "scramjet") {
+  const ba = normalizeBackend(localStorage.getItem("cherri_backend"));
+  if (ba === "scramjet") {
     furl = scramjet.encodeUrl(u);
-  } else if (ba.toLowerCase() === "ultraviolet") {
+  } else if (ba === "ultraviolet") {
     furl = __uv$config.prefix + __uv$config.encodeUrl(u);
   } else {
     furl = scramjet.encodeUrl(u);
@@ -292,10 +338,10 @@ function f() {
   const u = cTab.history[cTab.historyIndex];
   cTab.url = u;
   let furl;
-  const ba = localStorage.getItem("cherri_backend");
-  if (ba.toLowerCase() === "scramjet") {
+  const ba = normalizeBackend(localStorage.getItem("cherri_backend"));
+  if (ba === "scramjet") {
     furl = scramjet.encodeUrl(u);
-  } else if (ba.toLowerCase() === "ultraviolet") {
+  } else if (ba === "ultraviolet") {
     furl = __uv$config.prefix + __uv$config.encodeUrl(u);
   } else {
     furl = scramjet.encodeUrl(u);
@@ -347,11 +393,11 @@ async function launchEruda() {
 }
 
 async function fixProxy() {
-  await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
+  const wispUrl = await configureTransport();
 
   showToast("success", "Connection reset to Libcurl!", "fas fa-check-circle")
   console.log(
-    "%c[SUCCESS]" + "%c Connection reset to Libcurl.",
+    "%c[SUCCESS]" + `%c Connection reset to Libcurl: ${wispUrl}`,
     "color: lime; font-weight: bold;",
     "color: white; font-weight: normal;"
   );
@@ -365,7 +411,7 @@ async function fixProxy() {
     "color: white; font-weight: normal;"
   );
 
-  await navigator.serviceWorker.register("/uv/sw.js")
+  await navigator.serviceWorker.register("/uv/uv.sw.js")
 
   showToast("success", "Service workers reregistered. (2/2)", "fas fa-check-circle");
   console.log(

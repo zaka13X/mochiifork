@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Poki",
+    "img": "/assets/img/apps/poki.png",
+    "url": "https://poki.com"
+  },
+  {
+    "name": "CrazyGames",
+    "img": "/assets/img/apps/crazygames.png",
+    "url": "https://crazygames.com"
+  },
+  {
+    "name": "Coolmath Games",
+    "img": "/assets/img/apps/coolmath.png",
+    "url": "https://coolmathgames.com"
+  },
+  {
+    "name": "Y8",
+    "img": "/assets/img/apps/y8.png",
+    "url": "https://y8.com"
+  },
+  {
+    "name": "Now.gg",
+    "img": "/assets/img/apps/nowgg.png",
+    "url": "https://now.gg"
+  },
+  {
+    "name": "Scratch",
+    "img": "/assets/img/apps/scratch.webp",
+    "url": "https://scratch.mit.edu"
+  }
+]

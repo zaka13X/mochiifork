@@ -271,6 +271,13 @@
         // ─────────────────────────────────────────────
         const LOAD_TIMEOUT_MS = 15000; // how long to wait before showing error
         const SW_WAIT_TIMEOUT_MS = 8000; // how long to wait for SW to become ready
+        const DEFAULT_WISP_URL = 'wss://mochiiibackend.share.zrok.io/wisp/';
+        const WISP_FALLBACKS = [
+            DEFAULT_WISP_URL,
+            'wss://wisp.rhw.one/',
+            'wss://wisp.mercurywork.shop/',
+            'wss://anura.pro/wisp/'
+        ];
 
         const gameframe    = document.getElementById('gameframe');
         const loadingEl    = document.getElementById('game-loading');
@@ -280,9 +287,12 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const rawGameUrl = urlParams.get('launch');
+        const connection = window.BareMux
+            ? new BareMux.BareMuxConnection('/baremux/worker.js')
+            : null;
 
         // Which backend to try — read from localStorage, same key the settings panel uses
-        let currentBackend = localStorage.getItem('cherri_backend') ?? 'uv';
+        let currentBackend = normalizeBackend(localStorage.getItem('cherri_backend') ?? 'uv');
 
         let loadTimer = null;
 
@@ -306,6 +316,43 @@
             errorEl.classList.add('visible');
         }
 
+        function normalizeBackend(value) {
+            const backend = String(value || 'uv').toLowerCase();
+            if (backend === 'ultraviolet' || backend === 'uv') return 'uv';
+            if (backend === 'scramjet') return 'scramjet';
+            return 'uv';
+        }
+
+        function normalizeWispUrl(url) {
+            const value = String(url || DEFAULT_WISP_URL).trim();
+            return value.endsWith('/') ? value : `${value}/`;
+        }
+
+        function getWispCandidates() {
+            const saved = normalizeWispUrl(localStorage.getItem('cherri_wispUrl'));
+            return [saved, ...WISP_FALLBACKS.map(normalizeWispUrl)].filter(
+                (url, index, all) => all.indexOf(url) === index
+            );
+        }
+
+        async function configureTransport() {
+            if (!connection) return;
+
+            let lastError;
+            for (const url of getWispCandidates()) {
+                try {
+                    await connection.setTransport('/libcurl/index.mjs', [{ websocket: url }]);
+                    localStorage.setItem('cherri_wispUrl', url);
+                    return;
+                } catch (error) {
+                    lastError = error;
+                    console.warn('mochii: failed to set game Wisp transport, trying next:', url, error);
+                }
+            }
+
+            throw lastError || new Error('No Wisp transports are available.');
+        }
+
         // ─────────────────────────────────────────────
         //  Build the proxied URL for a raw game URL
         // ─────────────────────────────────────────────
@@ -326,9 +373,21 @@
             }
 
             if (backend === 'scramjet') {
-                // Scramjet uses /scramjet/service/ prefix — adjust if your config differs
-                const sjPrefix = '/scramjet/';
-                return sjPrefix + encodeURIComponent(rawUrl);
+                if (typeof $scramjetLoadController === 'function') {
+                    const { ScramjetController } = $scramjetLoadController();
+                    const scramjet = new ScramjetController({
+                        files: {
+                            wasm: '/homework/history.wasm.wasm',
+                            all: '/homework/math.all.js',
+                            sync: '/homework/science.sync.js',
+                        },
+                    });
+                    scramjet.init();
+                    return scramjet.encodeUrl(rawUrl);
+                }
+
+                console.warn('mochii: Scramjet unavailable on play page, using UV instead');
+                return buildProxiedUrl(rawUrl, 'uv');
             }
 
             return rawUrl;
@@ -354,7 +413,7 @@
                     await Promise.all([
                         navigator.serviceWorker.ready,
                         // Re-register in case the page loaded without them (e.g. direct navigation)
-                        navigator.serviceWorker.register('/uv/sw.js', { scope: '/' }).catch(() => {}),
+                        navigator.serviceWorker.register('/uv/uv.sw.js', { scope: '/' }).catch(() => {}),
                         navigator.serviceWorker.register('/sw.js',    { scope: '/' }).catch(() => {})
                     ]);
                     clearTimeout(timer);
@@ -442,6 +501,7 @@
 
             try {
                 await waitForServiceWorkers();
+                await configureTransport();
                 loadingLabel.textContent = 'Starting game...';
             } catch (e) {
                 console.warn('mochii: SW wait failed:', e.message, '— attempting to load anyway');

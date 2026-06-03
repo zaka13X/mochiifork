@@ -1,0 +1,21 @@
+{
+  "name": "mochii",
+  "version": "1.0.0",
+  "description": "<h1 align=\"center\">mochii</h1>",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/python-mxnt/mochii.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/python-mxnt/mochii/issues"
+  },
+  "homepage": "https://github.com/python-mxnt/mochii#readme"
+}

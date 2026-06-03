@@ -367,6 +367,12 @@
         const luminContainer = document.getElementById("lumin-games");
         const luminLoading = document.getElementById("lumin-loading");
         let selectedStore = localStorage.getItem("cherri_gameStore") || "GN-Math";
+        const gameStores = {
+            "gn-math": { type: "json", path: "/assets/json/gn-math.json" },
+            "game portals": { type: "json", path: "/assets/json/game-portals.json" },
+            "featured classics": { type: "json", path: "/assets/json/featured-classics.json" },
+            "luminsdk": { type: "lumin" },
+        };
 
         // Show skeleton placeholders while loading
         function showSkeletons(count = 12) {
@@ -466,21 +472,22 @@
             });
         }, { rootMargin: "200px" });
 
-        async function loadLocalGames() {
+        async function loadLocalGames(storeConfig) {
             hideError();
             document.body.classList.remove("lumin-store");
             luminContainer.classList.remove("active");
             showSkeletons(12);
 
             let data;
+            const path = storeConfig?.path || "/assets/json/gn-math.json";
             try {
-                data = await getJson('/assets/json/gn-math.json');
+                data = await getJson(path);
             } catch (e) {
                 console.error("mochii: failed to load game list", e);
                 const isTimeout = e.name === "AbortError";
                 showError(isTimeout
                     ? "Game list timed out. Check your connection and retry."
-                    : "Failed to load games. The server may be down.");
+                    : `Failed to load ${selectedStore}. The server may be down.`);
                 return;
             }
 
@@ -512,12 +519,14 @@
         }
 
         async function loadApps() {
-            if (selectedStore.toLowerCase() === "luminsdk") {
+            const storeConfig = gameStores[selectedStore.toLowerCase()] || gameStores["gn-math"];
+
+            if (storeConfig.type === "lumin") {
                 loadLuminGames();
                 return;
             }
 
-            loadLocalGames();
+            loadLocalGames(storeConfig);
         }
 
         function retryLoad() {
