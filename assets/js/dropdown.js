@@ -184,7 +184,7 @@ const allThemeOptions = [
   "violet",
 ];
 
-const allStoreOptions = ["gn-math", "luminSDK", "game portals", "community sources"];
+const allStoreOptions = ["gn-math", "luminSDK"];
 
 function createSelector(
   selectorType,
