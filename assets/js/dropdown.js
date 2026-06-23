@@ -4,8 +4,8 @@ const appSettings = {
   searchEngine: localStorage.getItem("cherri_searchEngine") || "DuckDuckGo",
   decoy: localStorage.getItem("decoy") || "None",
   wisp: localStorage.getItem("cherri_wispUrlSelected") || "mochiii",
-  theme: localStorage.getItem("cherri_theme") || "default",
-  store: localStorage.getItem("cherri_gameStore") || "GN-Math",
+  theme: localStorage.getItem("cherri_theme") || "void",
+  store: localStorage.getItem("cherri_gameStore") || "gn-math",
 };
 
 const searchEngineSelector = document.querySelector(".search-engine-selector");
