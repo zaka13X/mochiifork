@@ -7,7 +7,14 @@
 <p align="center">
   a ubg project built to be clean, simple, and easy to use. with over 400 games, 40 apps, a fast and powerful browser, extensive customization options, and much more, this is easily one of the best unblocked websites.
 </p>
- 
+<div align="center" >
+  
+  ![GitHub License](https://img.shields.io/github/license/atmo1lost/mochii)
+  ![GitHub Created At](https://img.shields.io/github/created-at/atmo1lost/mochii)
+  ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/atmo1lost/mochii)
+
+</div>
+
 <hr>
 
 ## Roadmap
