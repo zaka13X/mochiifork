@@ -167,7 +167,7 @@ const allWispOptions = [
 
 const allThemeOptions = [
   "default",
-  "void",
+  "pink",
   "ocean",
   "forest",
   "ember",

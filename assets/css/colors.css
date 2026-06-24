@@ -1,17 +1,17 @@
 :root {
-    --bg: #220f17;
-    --bg-2: #3f1e2b;
-    --bg-3: #57293c;
-    --bg-4: #85415d8c;
-    --bg-5: #1a0b11;
-    --border: #ebd5ddc7;
-    --border-2: #ebd5dd70;
-    --border-3: #ebd5dd30;
-    --border-4: #ebd5dd1a;
-    --text: #c0c0c0;
+    --bg: #0c0c0c;
+    --bg-2: #131313;
+    --bg-3: #272727;
+    --bg-4: #5252528c;
+    --bg-5: #000000;
+    --border: #ebe3d5c7;
+    --border-2: #ebe3d570;
+    --border-3: #e0e0e030;
+    --border-4: #b4b4b41a;
+    --text: #c2c2c2;
     --bright-text: #ffffff;
-    --accent: #e2588d;
-    --accent-2: #c44ac4;
+    --accent: #ffffff;
+    --accent-2: #adadad;
 }
 
 #reset-theme {
