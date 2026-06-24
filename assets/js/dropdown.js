@@ -336,9 +336,9 @@ createSelector(
 document.addEventListener("decoyUpdated", (e) => applyDecoy(e.detail));
 document.addEventListener("themeUpdated", (e) => {
   const link = document.getElementById("css-theme-link");
-  const theme = e.detail ?? "default";
+  const theme = e.detail ?? "void";
 
-  if (theme !== "default") {
+  if (theme !== "void") {
     link.href = `/assets/css/themes/${theme}.css`;
   } else {
     link.href = "/assets/css/colors.css";
