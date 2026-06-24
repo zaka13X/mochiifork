@@ -98,9 +98,6 @@ async function registerSW() {
     // Run wisp health check in parallel with SW registration
     const [bestWisp] = await Promise.allSettled([
         getBestWisp(),
-        registerOne("/uv/uv.sw.js", "UV")
-            .then(() => showToast("success", "Ultraviolet worker initialized!", "fas fa-check-circle"))
-            .catch(() => showToast("error", "UV worker failed to register — games may not load.", "fas fa-times-circle")),
         registerOne("/sw.js", "Scramjet")
             .then(() => showToast("success", "Scramjet worker initialized!", "fas fa-check-circle"))
             .catch(() => showToast("error", "Scramjet worker failed to register.", "fas fa-times-circle"))

@@ -343,6 +343,7 @@ document.addEventListener("themeUpdated", (e) => {
   } else {
     link.href = "/assets/css/colors.css";
   }
+  resetTheme()
 });
 document.addEventListener("wispUpdated", (e) => {
   const wisp = wispPresets[e.detail];

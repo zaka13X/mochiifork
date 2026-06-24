@@ -41,6 +41,11 @@
             history.replaceState(null, '', '/');
         }
         // ty sir cy
+        // if mobile is true then disable cursor
+        if (isMobile == true) {
+            cursorToggle.checked = false
+        }
+
     </script>
     <meta name="title" content="mochii">
     <meta name="description"
@@ -97,6 +102,11 @@
                 </a>
             </li>
             <li>
+                <a onclick="rSearch(''); showToast('success', 'browser loaded!',  'fas fa-exclamation-triangle')" href="#" data-page="browser">
+                    <i class="ri-search-ai-3-line"></i>
+                </a>
+            </li>
+            <li>
                 <a onclick="navTo('movies'); showToast('success', 'remember to swap sources just incase the movies dont load!',  'fas fa-exclamation-triangle')" href="#" data-page="movies">
                     <i class="ri-video-line"></i>
                 </a>
@@ -110,7 +120,7 @@
             <li>
                 <a onclick="navTo('music'); showToast('success', 'music is still in beta! Report bugs on the repo/Discord.', 'fas fa-exclamation-triangle')"
                     href="#" data-page="music">
-                    <i class="ri-music-ai-fill"></i>
+                    <i class="ri-music-ai-line"></i>
                 </a>
             </li>
             <li>
@@ -127,7 +137,7 @@
             <li class="divider"></li>
             <li>
                 <a onclick="togglePartners()" href="#" data-page="movies">
-                    <i class="ri-shake-hands-fill"></i>
+                    <i class="ri-shake-hands-line"></i>
                 </a>
             </li>
             

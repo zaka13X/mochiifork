@@ -31,8 +31,10 @@ function cursor() {
   let displayY = 0;
 
   function animate() {
-    displayX += (mouseX - displayX) * 0.25;
-    displayY += (mouseY - displayY) * 0.25;
+    // this is the smoothing btw
+    displayX += (mouseX - displayX) * 0.38;
+    displayY += (mouseY - displayY) * 0.38;
+    // end of smoothing
     cursor.style.transform = `translate(${displayX - 8}px, ${displayY - 8}px)`;
     animationId = requestAnimationFrame(animate);
   }

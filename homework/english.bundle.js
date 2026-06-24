@@ -4523,8 +4523,9 @@ a {
 </body>
 <div id="cover"></div>
 <div id="inner">
-    <h1 id="errorTitle">Uh oh!</h1>
-    <p>There was an error loading <b id="fetchedURL"></b></p>
+    <h1 id="errorTitle">oh no</h1>
+    <p><b>mochii / whatever wisp server you use <br> server is most likely down.</b></p>
+    <p>there was an error loading <b id="fetchedURL"></b></p>
     <!-- <p id="errorMessage">Internal Server Error</p> -->
 
     <div id="info">
@@ -4535,6 +4536,7 @@ a {
         <div id="troubleshooting">
             <p>Try:</p>
             <ul>
+                <li>changing your wisp server</li>
                 <li>Checking your internet connection</li>
                 <li>Verifying you entered the correct address</li>
                 <li>Clearing the site data</li>
