@@ -38,8 +38,44 @@
     <div id="homeContent">
         <h1 class="text-8xl text-white font-bold">hi!</h1>
         <p style="color: var(--text) !important;">try searching to get started.</p>
+        <p style="color: var(--text) !important;">having issues? change wisp server <br>or<br> <a href="" onclick="clearData(); return false;">clear data</a></p>
     </div>
 
+    <script>
+    function clearData() {
+
+    console.log("clearing local storage")
+    localStorage.clear()
+
+    console.log("clearing session storage")
+    sessionStorage.clear()
+
+    console.log("clearing cookies")
+    document.cookie.split(";").forEach(cookie => {
+        const eqPos = cookie.indexOf("=")
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+
+        document.cookie =
+            name +
+            "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+    })
+
+    console.log("clearing indexedDB")
+    if (window.indexedDB && indexedDB.databases) {
+        indexedDB.databases().then(databases => {
+            databases.forEach(db => {
+                indexedDB.deleteDatabase(db.name)
+            })
+        })
+    }
+
+    console.log("all saved website data cleared.")
+
+    setTimeout(() => {
+        location.reload()
+    }, 500)
+}
+    </script>
     
 </body>
 

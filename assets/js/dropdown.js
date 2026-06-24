@@ -156,6 +156,7 @@ const wispPresets = {
   mochiii: { url: "wss://mochiiibackend.share.zrok.io/wisp/" },
   mercury: { url: "wss://wisp.mercurywork.shop/" },
   anura: { url: "wss://anura.pro/wisp/" },
+  cneducation: { url: "wss://cneducation.site/wisp/"}
 };
 
 const allWispOptions = [
@@ -163,6 +164,7 @@ const allWispOptions = [
   "mochiii",
   "mercury",
   "anura",
+  "cneducation",
 ];
 
 const allThemeOptions = [
