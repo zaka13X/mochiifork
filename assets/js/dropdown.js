@@ -4,7 +4,7 @@ const appSettings = {
   searchEngine: localStorage.getItem("cherri_searchEngine") || "DuckDuckGo",
   decoy: localStorage.getItem("decoy") || "None",
   wisp: localStorage.getItem("cherri_wispUrlSelected") || "mochiii",
-  theme: localStorage.getItem("cherri_theme") || "void",
+  theme: localStorage.getItem("cherri_theme") || "default",
   store: localStorage.getItem("cherri_gameStore") || "gn-math",
 };
 
@@ -336,9 +336,9 @@ createSelector(
 document.addEventListener("decoyUpdated", (e) => applyDecoy(e.detail));
 document.addEventListener("themeUpdated", (e) => {
   const link = document.getElementById("css-theme-link");
-  const theme = e.detail ?? "void";
+  const theme = e.detail ?? "default";
 
-  if (theme !== "void") {
+  if (theme !== "default") {
     link.href = `/assets/css/themes/${theme}.css`;
   } else {
     link.href = "/assets/css/colors.css";
