@@ -85,7 +85,7 @@
                 <a onclick="navTo('home')" style="margin-top: 8px; margin-left: 7.3px;" href="#"
                     data-page="home">
                     <div class="hcontainer">
-                        <img src="/assets/img/fav.png" style="height: 24px; margin-top: -1px; margin-right: -0px;"
+                        <img src="/assets/img/fav.png" style="height: 24px; margin-top: 0.22px; margin-right: -0px;"
                             alt="">
                     </div>
                 </a>
@@ -185,7 +185,7 @@
                 class="fas fa-spinner-third"></i>
         </div>
         <br><br>
-        <span class="online-users"><b id="user-count">0</b> users currently online</span>
+        <span class="online-users"><b id="user-count"></b></span>
     </div>
 
     <div class="toast-container fixed right-4 top-4 w-1/4">
@@ -1411,7 +1411,8 @@ function clearData() {
                 const visitors = Number(data.visitors) || 0
 
                 console.log("CURRENT VISITORS:" + visitors)
-                document.getElementById("user-count").textContent = visitors
+                const userCount = document.getElementById("user-count");
+                userCount.textContent = `${visitors} user${visitors === 1 ? "" : "s"} currently online`;
             } catch (err) {
                 console.warn("Failed to update visitor count:", err)
             }
