@@ -962,23 +962,31 @@
                     togglePartners()
                 } else if (downloadHolder.classList.contains("settings-shown")) {
                     toggleDownloadGames()
-                } else if (clearHolder.classList.contains("settings-shown")) {
-                    clearData()
                 }
-                const newBlurOverlay = document.createElement("div")
-                newBlurOverlay.classList.add("blurOverlay")
-                document.body.appendChild(newBlurOverlay)
-                newBlurOverlay.addEventListener("click", () => {
-                    toggleApps()
-                })
+
+                // Don't create multiple overlays
+                let overlay = document.querySelector(".blurOverlay")
+
+                if (!overlay) {
+                    overlay = document.createElement("div")
+                    overlay.classList.add("blurOverlay")
+                    document.body.appendChild(overlay)
+
+                    overlay.addEventListener("click", () => {
+                        toggleApps()
+                    })
+                }
+
                 appsHolder.classList.remove("settings-hidden")
                 appsHolder.classList.add("settings-shown")
+
                 console.log("Apps toggled.")
             } else {
                 appsHolder.classList.remove("settings-shown")
                 appsHolder.classList.add("settings-hidden")
-                const newBlurOverlay = document.querySelector(".blurOverlay")
-                newBlurOverlay.remove()
+
+                // Prevent null errors
+                document.querySelector(".blurOverlay")?.remove()
             }
         }
 
@@ -1047,9 +1055,9 @@ function clearData() {
         function toggleGames() {
             if (gamesHolder.classList.contains("settings-hidden")) {
                 if (appsHolder.classList.contains("settings-shown")) {s
-                    toggleSettings()
-                } else if (settingsHolder.classList.contains("settings-shown")) {
                     toggleApps()
+                } else if (settingsHolder.classList.contains("settings-shown")) {
+                    toggleSettings()
                 } else if (partnerHolder.classList.contains("settings-shown")) {
                     togglePartners()
                 } else if (downloadHolder.classList.contains("settings-shown")) {
