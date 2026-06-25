@@ -956,8 +956,8 @@
             if (appsHolder.classList.contains("settings-hidden")) {
                 if (settingsHolder.classList.contains("settings-shown")) {
                     toggleSettings()
-                // } else if (gamesHolder.classList.contains("settings-shown")) {
-                //     toggleGames()
+                } else if (gamesHolder.classList.contains("settings-shown")) {
+                    toggleGames()
                 } else if (partnerHolder.classList.contains("settings-shown")) {
                     togglePartners()
                 } else if (downloadHolder.classList.contains("settings-shown")) {
@@ -1046,10 +1046,10 @@ function clearData() {
 
         function toggleGames() {
             if (gamesHolder.classList.contains("settings-hidden")) {
-                if (appsHolder.classList.contains("settings-shown")) {
-                    toggleApps()
-                } else if (settingsHolder.classList.contains("settings-shown")) {
+                if (appsHolder.classList.contains("settings-shown")) {s
                     toggleSettings()
+                } else if (settingsHolder.classList.contains("settings-shown")) {
+                    toggleApps()
                 } else if (partnerHolder.classList.contains("settings-shown")) {
                     togglePartners()
                 } else if (downloadHolder.classList.contains("settings-shown")) {
