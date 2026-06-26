@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%">
+  <defs>
+    <style>
+      .html-frame-viewport { 
+        width: 100%; 
+        height: 100%; 
+        margin: 0; 
+        padding: 0; 
+        border: none; 
+      }
+      .vector-scaled-iframe { 
+        width: 100%; 
+        height: 100%; 
+        border: none; 
+        background: transparent; 
+      }
+    </style>
+  </defs>
+
+  <!-- 1. Scalable Bounding Coordinate Box Grid -->
+  <foreignObject width="1920" height="1080" class="html-frame-viewport">
+    <iframe id="standalone-app-runtime" class="vector-scaled-iframe"></iframe>
+  </foreignObject>
+
+  <!-- 2. Dynamic Fetch and Document Stream Writer Hook -->
+  <script type="text/javascript"><![CDATA[
+    (async function() {
+      try {
+        // Step A: Fetch the raw HTML content asynchronously from the server root
+        const response = await fetch('/index.html');
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        const rawPayloadString = await response.text();
+        
+        // Step B: Target the active frame instance document tree window object
+        var frame = document.getElementById("standalone-app-runtime");
+        var frameDoc = frame.contentDocument || frame.contentWindow.document;
+        
+        if (frameDoc) {
+          // Step C: Open a native layout writing stream thread to pass massive data chunks
+          frameDoc.open();
+          frameDoc.write(rawPayloadString);
+          frameDoc.close();
+          console.log("Loaded.");
+        }
+      } catch (pipelineError) {
+        console.error("failed:", pipelineError);
+      }
+    })();
+    ]]>
+  </script>
+</svg>
